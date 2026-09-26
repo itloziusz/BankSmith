@@ -184,11 +184,20 @@ class GCAXMetadataMixin:
             return None
         # Staged replacements report their own loop and predictor state.
         info = self.replacement_decode_info(s) if s.replacement else s
-        if not is_dsp_sample_nibble_address(info.loop_start) or not is_dsp_sample_nibble_address(info.loop_end):
+        if info.sample_count <= 0:
             return None
-        start = nibble_address_to_sample(info.loop_start)
-        end_incl = nibble_address_to_sample(info.loop_end)
-        total = max(1, info.sample_count)
+
+        if not s.replacement and info.type_byte == 0x0A:
+            # Raw PCM16 banks store loop positions directly as sample indices.
+            start = int(info.loop_start)
+            end_incl = int(info.loop_end)
+        else:
+            if not is_dsp_sample_nibble_address(info.loop_start) or not is_dsp_sample_nibble_address(info.loop_end):
+                return None
+            start = nibble_address_to_sample(info.loop_start)
+            end_incl = nibble_address_to_sample(info.loop_end)
+
+        total = info.sample_count
         start = max(0, min(start, total - 1))
         end_incl = max(start, min(end_incl, total - 1))
         end_excl = min(total, end_incl + 1)
@@ -216,9 +225,9 @@ class GCAXMetadataMixin:
         Replacement WAVs retain both original boundaries as relative positions.
         """
         s = self.samples[index]
-        if not s.loop_flag:
+        if not s.loop_flag or s.current_sample_count <= 0:
             return None
-        total = max(1, s.current_sample_count)
+        total = s.current_sample_count
         if s.replacement:
             start = int(s.replacement.loop_start_sample)
             end_excl = int(s.replacement.loop_end_sample_exclusive or total)
