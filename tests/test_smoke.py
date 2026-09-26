@@ -78,6 +78,9 @@ def test_dreamcast_public_backends() -> None:
 
 def test_banksmith_brand_api() -> None:
     assert banksmith_pkg.BankSmithApp is pkg.BankSmithApp
+    assert banksmith_pkg.BankSmithApp.__name__ == "BankSmithApp"
+    assert banksmith_pkg.APP_NAME == "BankSmith"
+    assert banksmith_pkg.APP_TITLE.startswith("BankSmith")
     assert banksmith_pkg.MLTBank is pkg.MLTBank
     assert banksmith_pkg.DreamcastMDTBank is pkg.DreamcastMDTBank
 
@@ -87,4 +90,17 @@ def test_banksmith_primary_launcher_exists() -> None:
     assert launcher.exists()
     text = launcher.read_text(encoding="utf-8")
     assert "BankSmith" in text
-    assert "mlt_soundbank_explorer.cli" in text
+    assert "from banksmith import" in text
+
+
+def test_no_legacy_product_branding() -> None:
+    root = Path(__file__).resolve().parents[1]
+    forbidden = "MLT Soundbank Explorer"
+    extensions = {".py", ".md", ".yml", ".yaml", ".txt", ".toml"}
+    for path in root.rglob("*"):
+        if not path.is_file() or path.suffix.lower() not in extensions:
+            continue
+        if any(part in {".git", ".pytest_cache", "__pycache__"} for part in path.parts):
+            continue
+        content = path.read_text(encoding="utf-8", errors="ignore")
+        assert forbidden not in content, f"legacy product branding remains in {path}"
