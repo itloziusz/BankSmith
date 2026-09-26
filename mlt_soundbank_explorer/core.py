@@ -271,3 +271,4 @@ class SampleInfo:
         """Physical DSP frame bytes needed to decode every advertised sample."""
         if self.fmt == 0 and self.type_byte == 0:
             return 8 * math.ceil(self.current_sample_count / 14)
+        return self.logical_encoded_byte_count
