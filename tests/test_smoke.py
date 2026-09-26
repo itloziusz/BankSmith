@@ -104,3 +104,28 @@ def test_no_legacy_product_branding() -> None:
             continue
         content = path.read_text(encoding="utf-8", errors="ignore")
         assert forbidden not in content, f"legacy product branding remains in {path}"
+
+
+def test_gcax_55_padding_and_standalone_mpb_open() -> None:
+    from mlt_soundbank_explorer.adapters import open_editable_bank, StandaloneGCAXMPBBank
+
+    def chunk(magic: bytes, body: bytes) -> bytes:
+        assert len(magic) == 8
+        return magic + b"\x00\x00\x00\x00" + len(body).to_bytes(4, "big") + body
+
+    # Minimal valid gcaxMPB with the exact 0x55 ('U') padding pattern reported
+    # in issues #1/#2 between MPBW and MPBP.
+    mpbw = chunk(b"gcaxMPBW", b"")
+    mpbp_body = bytearray(0x20)  # zero samples/programs is a valid empty bank
+    mpbp = chunk(b"gcaxMPBP", bytes(mpbp_body))
+    mpb_body = mpbw + (b"\x55" * 0x20) + mpbp
+    standalone = chunk(b"gcaxMPB ", mpb_body) + (b"\x55" * 0x10)
+
+    with tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "issue_fixture.mpb"
+        path.write_bytes(standalone)
+
+        bank = open_editable_bank(path)
+        assert isinstance(bank, StandaloneGCAXMPBBank)
+        assert bank.samples == []
+        assert bank.build_repacked() == standalone
