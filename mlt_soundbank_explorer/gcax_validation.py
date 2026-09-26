@@ -73,16 +73,23 @@ class GCAXValidationMixin:
                     "ok", "mltm", entry.index, "active bank directory record",
                     f"type={type_name}; bank_id={entry.bank_id}; pointer_rel=0x{entry.pointer_rel:X}; pointer_abs=0x{entry.pointer_abs:X}",
                 )
+        identity_source = getattr(self, "_validation_source_data", self.data)
         add("info", "file", "-", "replacements", str(self.replacement_count()))
-        add("info", "file", "-", "original_size", str(len(self.data)))
-        add("info", "file", "-", "original_sha1", hashlib.sha1(self.data).hexdigest())
+        add("info", "file", "-", "original_size", str(len(identity_source)))
+        add("info", "file", "-", "original_sha1", hashlib.sha1(identity_source).hexdigest())
 
         try:
             repacked = self.build_repacked()
             add("info", "repack", "-", "repacked_size", str(len(repacked)))
             add("info", "repack", "-", "repacked_sha1", hashlib.sha1(repacked).hexdigest())
             if self.replacement_count() == 0:
-                add("ok" if repacked == self.data else "error", "repack", "-", "no-edit identity check", "byte-identical" if repacked == self.data else "changed without replacements")
+                add(
+                    "ok" if repacked == identity_source else "error",
+                    "repack",
+                    "-",
+                    "no-edit identity check",
+                    "byte-identical" if repacked == identity_source else "changed without replacements",
+                )
             else:
                 add("ok", "repack", "-", "build_repacked completed", "offsets and MPBW rebuilt in memory")
         except Exception as exc:
