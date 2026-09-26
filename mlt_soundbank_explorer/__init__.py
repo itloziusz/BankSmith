@@ -8,6 +8,11 @@ from .bank import MLTBank
 from .gui import MLTExplorerApp
 from .formats import SoundbankProbe, ProbeEntry, inspect_soundbank, extract_mdt_blocks, format_summary_text
 from .adapters import StandaloneGCAXMPBBank, open_editable_bank, wrap_gcax_mpb_as_mlt
+from .dreamcast_bank import (
+    DreamcastStandaloneMPBBank,
+    DreamcastSMLTBank,
+    DreamcastMDTBank,
+)
 from .multi_gui import MultiFormatExplorerApp
 from .cli import main, print_cli_usage
 
@@ -16,6 +21,9 @@ __all__ = [
     "MLTExplorerApp",
     "MultiFormatExplorerApp",
     "StandaloneGCAXMPBBank",
+    "DreamcastStandaloneMPBBank",
+    "DreamcastSMLTBank",
+    "DreamcastMDTBank",
     "SoundbankProbe",
     "ProbeEntry",
     "open_editable_bank",
