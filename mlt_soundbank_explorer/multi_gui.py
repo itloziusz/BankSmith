@@ -9,9 +9,118 @@ from tkinter import filedialog, messagebox, ttk
 from .gui import MLTExplorerApp
 from .adapters import open_editable_bank
 from .formats import extract_mdt_blocks, format_summary_text, inspect_soundbank
+from .core import note_name
 
 
 class MultiFormatExplorerApp(MLTExplorerApp):
+
+    def _is_dreamcast_bank(self) -> bool:
+        return bool(self.bank and getattr(self.bank, "family", "") in (
+            "Dreamcast SMPB", "Dreamcast SMLT", "Sonic Shuffle MDT"
+        ))
+
+    def update_details(self) -> None:
+        if not self._is_dreamcast_bank():
+            return super().update_details()
+        idx = self.selected_index()
+        if idx is None:
+            self.detail_var.set("No sample selected.")
+            return
+        s = self.bank.samples[idx]
+        trigger_note = int(self.trigger_note_var.get())
+        rate, semis, rate_note = self.bank.rate_correction(idx, trigger_note=trigger_note)
+        audition_rate = self.bank.audition_sample_rate(
+            idx,
+            pitch_correct=self.pitch_correct_var.get(),
+            trigger_note=trigger_note,
+        )
+        loop_report = self.bank.loop_point_report(idx, trigger_note=trigger_note)
+        roots = ", ".join(f"{r}/{note_name(r)}" for r in s.root_keys) if s.root_keys else "-"
+        lines = [
+            f"Tone #{s.index}",
+            f"Alias: {s.alias}",
+            f"Container: {getattr(self.bank, 'family', 'Dreamcast')}",
+            f"AICA format: {s.format.upper()}",
+            f"Base-note playback rate: {s.current_sample_rate} Hz",
+            f"Preview/export rate: {audition_rate} Hz",
+            f"Root/base note(s): {roots}",
+            f"Trigger note: {trigger_note}/{note_name(trigger_note)}",
+            f"Pitch shift: {semis:+d} semitone(s) ({rate_note})",
+            f"Duration: {s.current_sample_count / audition_rate:.6f} s" if audition_rate else "Duration: 0 s",
+            f"Samples: {s.current_sample_count}",
+            f"Loop: {'yes' if s.loop_flag else 'no'}",
+            f"Loop start: {loop_report['loop_start_sample']}" if loop_report else "Loop start: -",
+            f"Loop end [exclusive]: {loop_report['loop_end_sample_exclusive']}" if loop_report else "Loop end: -",
+            f"Tone data offset: 0x{s.data_offset:06X}",
+            f"Encoded extent: {s.original_extent} bytes",
+            f"Usage: {', '.join(s.usage) if s.usage else 'not mapped'}",
+        ]
+        if s.replacement:
+            lines += [
+                "",
+                f"Replacement: {s.replacement.wav_path.name}",
+                f"Source WAV rate: {s.replacement.source_wav_rate} Hz",
+                f"Stored content rate: {s.replacement.sample_rate} Hz",
+                f"Encoded bytes: {len(s.replacement.encoded_payload)}",
+            ]
+        self.detail_var.set("\n".join(lines))
+
+    def _dreamcast_diag_notice(self, title: str) -> None:
+        messagebox.showinfo(
+            title,
+            "This command is specific to the gcax MPBP/MPBW layout. "
+            "Dreamcast SMLT/SMPB/MDT banks use the AICA tone backend instead. "
+            "Use the sample list, preview/export/replace controls, validation, or the structure view.",
+        )
+
+    def show_reverse_summary(self) -> None:
+        if self._is_dreamcast_bank():
+            return self._show_structural_probe(self.bank.path)
+        return super().show_reverse_summary()
+
+    def show_program_map(self) -> None:
+        if self._is_dreamcast_bank():
+            return self._dreamcast_diag_notice("Program map")
+        return super().show_program_map()
+
+    def show_selected_layer_fields(self) -> None:
+        if self._is_dreamcast_bank():
+            return self._dreamcast_diag_notice("Layer fields")
+        return super().show_selected_layer_fields()
+
+    def save_program_map_csv(self) -> None:
+        if self._is_dreamcast_bank():
+            return self._dreamcast_diag_notice("Program map")
+        return super().save_program_map_csv()
+
+    def save_bank_tree_json(self) -> None:
+        if self._is_dreamcast_bank():
+            path = filedialog.asksaveasfilename(
+                title="Save Dreamcast structure JSON",
+                initialfile=self.bank.path.stem + "_structure.json",
+                defaultextension=".json",
+                filetypes=[("JSON", "*.json")],
+            )
+            if path:
+                Path(path).write_text(inspect_soundbank(self.bank.path).to_json(indent=2) + "\n", encoding="utf-8")
+            return
+        return super().save_bank_tree_json()
+
+    def save_deep_audit(self) -> None:
+        if self._is_dreamcast_bank():
+            return self._dreamcast_diag_notice("Deep audit")
+        return super().save_deep_audit()
+
+    def save_samplerate_forensics(self) -> None:
+        if self._is_dreamcast_bank():
+            return self._dreamcast_diag_notice("Sample-rate forensics")
+        return super().save_samplerate_forensics()
+
+    def save_parameter_forensics(self) -> None:
+        if self._is_dreamcast_bank():
+            return self._dreamcast_diag_notice("Parameter forensics")
+        return super().save_parameter_forensics()
+
     def _show_structural_probe(self, path: Path) -> None:
         probe = inspect_soundbank(path)
 
