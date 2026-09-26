@@ -6,8 +6,3 @@ No runtime monkey-patching is performed here.
 from .render_audio import *
 from .gcax_render import GCAXRenderMixin
 from .gui_render import GUIRenderMixin
-
-__all__ = [
-    "GCAXRenderMixin",
-    "GUIRenderMixin",
-]
