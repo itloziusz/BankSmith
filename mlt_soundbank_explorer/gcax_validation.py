@@ -108,11 +108,38 @@ class GCAXValidationMixin:
                 add("error", "payload", s.index, "sample payload outside MPBW", f"off=0x{s.data_offset:X} bytes={s.byte_count} mpbw={self.mpbw_size}")
             if s.byte_count <= 0:
                 add("warning", "payload", s.index, "empty or non-positive encoded byte count", str(s.byte_count))
-            if s.replacement or (s.fmt == 0 and s.type_byte == 0):
+            replacement_info = self.replacement_decode_info(s) if s.replacement else None
+            active_type = replacement_info.type_byte if replacement_info else s.type_byte
+            active_fmt = replacement_info.fmt if replacement_info else s.fmt
+
+            if active_type == 0x0A:
+                info = replacement_info if replacement_info else s
+                expected_bytes = info.sample_count * 2
+                actual_bytes = (
+                    len(s.replacement.encoded_payload)
+                    if s.replacement
+                    else s.byte_count
+                )
+                if actual_bytes != expected_bytes:
+                    add(
+                        "error",
+                        "pcm",
+                        s.index,
+                        "raw PCM16 payload length disagrees with sample count",
+                        f"payload={actual_bytes} expected={expected_bytes}",
+                    )
+                else:
+                    add(
+                        "ok",
+                        "pcm",
+                        s.index,
+                        "raw PCM16 payload resolved",
+                        f"samples={info.sample_count} bytes={actual_bytes}",
+                    )
+            elif active_fmt == 0 and active_type == 0:
                 expected_nibbles = s.sample_count + 2 * math.ceil(s.sample_count / 14)
                 if s.replacement:
                     expected_nibbles = s.replacement.nibble_count
-                    replacement_info = self.replacement_decode_info(s)
                     calculated_nibbles = replacement_info.sample_count + 2 * math.ceil(replacement_info.sample_count / 14)
                     if expected_nibbles != calculated_nibbles:
                         add("error", "dsp", s.index, "replacement DSP nibble count disagrees with sample count", f"stored={expected_nibbles} expected={calculated_nibbles}")
@@ -154,11 +181,21 @@ class GCAXValidationMixin:
                     add("warning", "replacement", s.index, "replacement source path no longer exists", str(rep.wav_path))
                 if rep.source_wav_rate and rep.content_sample_rate and rep.source_wav_rate != rep.content_sample_rate:
                     add("info", "replacement", s.index, "replacement was resampled for game pitch", f"source={rep.source_wav_rate} Hz content={rep.content_sample_rate} Hz stored_rate_word={rep.sample_rate} base={rep.sample_rate / MLT_RATE_WORD_DIVISOR:.3f} Hz")
-                quality = f"DSP encode RMS error={rep.encode_rms_error:.1f}, peak error={rep.encode_peak_error}"
-                if rep.encode_peak_error > 24576:
-                    add("warning", "replacement", s.index, "high DSP-ADPCM encode error", quality)
+                rep_info = self.replacement_decode_info(s)
+                if rep_info.type_byte == 0x0A:
+                    add(
+                        "ok",
+                        "replacement",
+                        s.index,
+                        "raw PCM16 replacement prepared",
+                        f"samples={rep_info.sample_count} bytes={len(rep.encoded_payload)}",
+                    )
                 else:
-                    add("ok", "replacement", s.index, "DSP-ADPCM decode-back check", quality)
+                    quality = f"DSP encode RMS error={rep.encode_rms_error:.1f}, peak error={rep.encode_peak_error}"
+                    if rep.encode_peak_error > 24576:
+                        add("warning", "replacement", s.index, "high DSP-ADPCM encode error", quality)
+                    else:
+                        add("ok", "replacement", s.index, "DSP-ADPCM decode-back check", quality)
                 if s.loop_flag and rep.loop_start_sample >= s.current_sample_count:
                     add("warning", "replacement", s.index, "replacement loop start is beyond sample end", f"loop_start={rep.loop_start_sample} samples={s.current_sample_count}")
                 if s.loop_flag and not (rep.loop_start_sample < rep.loop_end_sample_exclusive <= s.current_sample_count):
