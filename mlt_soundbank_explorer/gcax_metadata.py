@@ -105,11 +105,17 @@ class GCAXMetadataMixin:
         if not s.replacement:
             raise ValueError("Sample has no replacement")
         e = s.replacement.new_entry
+        replacement_type = e[0x4A]
+        replacement_sample_count = (
+            len(s.replacement.pcm_le_i16) // 2
+            if replacement_type == 0x0A
+            else u32be(e, 0x00)
+        )
         return SampleInfo(
             index=s.index,
             entry_rel=s.entry_rel,
             entry_abs=s.entry_abs,
-            sample_count=u32be(e, 0x00),
+            sample_count=replacement_sample_count,
             nibble_count=u32be(e, 0x04),
             sample_rate=u32be(e, 0x08),
             loop_flag=u16be(e, 0x0C),
@@ -134,7 +140,10 @@ class GCAXMetadataMixin:
         s = self.samples[index]
         if s.replacement:
             # Preview the encoded replacement, not the source WAV.
-            return decode_dsp_adpcm(s.replacement.encoded_payload, self.replacement_decode_info(s))
+            info = self.replacement_decode_info(s)
+            if info.type_byte == 0x0A:
+                return decode_raw_be_pcm(s.replacement.encoded_payload, info)
+            return decode_dsp_adpcm(s.replacement.encoded_payload, info)
         payload = self.sample_payload(s)
         if s.fmt == 0 and s.type_byte == 0:
             return decode_dsp_adpcm(payload, s)
