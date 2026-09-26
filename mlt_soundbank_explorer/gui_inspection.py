@@ -20,6 +20,7 @@ from .core import *
 from .dsp import *
 from .audio import *
 from .bank import *
+from .branding import BANK_TREE_TOOL_NAME
 
 class GUIInspectionMixin:
     def _program_rows_for_gui(self) -> List[Dict[str, object]]:
@@ -128,7 +129,7 @@ class GUIInspectionMixin:
                 "replacement": s.replacement_label,
             })
         return {
-            "tool": "BankSmith bank tree",
+            "tool": BANK_TREE_TOOL_NAME,
             "source": str(bank.path),
             "mltm_directory": [
                 {
