@@ -66,7 +66,7 @@ class GUIRenderMixin:
         ttk.Button(strip, text="Audio Quality Report", command=self.save_audio_quality_report_csv).pack(side=tk.LEFT, padx=(0, 6))
     
     
-    def self._clean_render_options() -> Dict[str, object]:
+    def _clean_render_options(self) -> Dict[str, object]:
         return {
             "clean": bool(self.clean_audition_var.get()),
             "fixed_output_rate": bool(self.fixed_render_rate_var.get()),
