@@ -147,6 +147,11 @@ class GCAXEditMixin:
         self.samples[index].replacement = None
 
     def build_repacked(self) -> bytes:
+        # A no-edit save must be a true byte-for-byte copy. This also preserves
+        # title-specific padding/alignment that does not need reconstruction.
+        if not any(s.replacement for s in self.samples):
+            return bytes(self.data)
+
         mpbp_body = bytearray(self.data[self.mpbp_body:self.mpbp_body + self.mpbp_size])
         mpbw_body_new = bytearray()
 
