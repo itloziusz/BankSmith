@@ -6,6 +6,7 @@ import math
 import os
 import platform
 import queue
+import shutil
 import subprocess
 import tempfile
 import threading
