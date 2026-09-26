@@ -196,7 +196,7 @@ class GCAXMetadataMixin:
         if info.sample_count <= 0:
             return None
 
-        if not s.replacement and info.type_byte == 0x0A:
+        if info.type_byte == 0x0A:
             # Raw PCM16 banks store loop positions directly as sample indices.
             start = int(info.loop_start)
             end_incl = int(info.loop_end)
