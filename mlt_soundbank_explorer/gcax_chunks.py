@@ -21,6 +21,7 @@ from .core import *
 from .dsp import *
 from .audio import *
 
+@dataclass(frozen=True)
 class ChildChunkInfo:
     header: int
     body: int
