@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import csv
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Tuple
 
 from .core import *
 from .audio import *
 from .render_audio import *
 
+
 class GCAXRenderMixin:
     def render_sample_for_wav(
-        self: MLTBank,
+        self,
         index: int,
         *,
         pitch_correct: bool = False,
@@ -23,7 +24,7 @@ class GCAXRenderMixin:
         decrackle_strength: str = "Light",
         limiter: bool = True,
         edge_fade: bool = True,
-) -> Tuple[bytes, int, Dict[str, float | int | str]]:
+    ) -> Tuple[bytes, int, Dict[str, float | int | str]]:
         pcm = self.decode_sample(index)
         src_rate_exact = self.audition_sample_rate_exact(index, pitch_correct=pitch_correct, trigger_note=trigger_note)
         src_rate_header = self.audition_sample_rate(index, pitch_correct=pitch_correct, trigger_note=trigger_note)
@@ -42,10 +43,10 @@ class GCAXRenderMixin:
         )
         diag["clean"] = 1
         return pcm2, out_rate, diag
-
-
+    
+    
     def render_loop_preview_for_wav(
-        self: MLTBank,
+        self,
         index: int,
         preview_seconds: int = 20,
         *,
@@ -63,7 +64,7 @@ class GCAXRenderMixin:
         decrackle_strength: str = "Light",
         limiter: bool = True,
         edge_fade: bool = True,
-) -> Tuple[bytes, int, Dict[str, float | int | str]]:
+    ) -> Tuple[bytes, int, Dict[str, float | int | str]]:
         src_rate_exact = self.audition_sample_rate_exact(index, pitch_correct=pitch_correct, trigger_note=trigger_note)
         src_rate_header = self.audition_sample_rate(index, pitch_correct=pitch_correct, trigger_note=trigger_note)
         pcm = self.build_loop_preview_pcm(
@@ -91,19 +92,19 @@ class GCAXRenderMixin:
         )
         diag["clean"] = 1
         return pcm2, out_rate, diag
-
-
-    def export_sample_rendered(self: MLTBank, index: int, path: Path, **kwargs) -> None:
+    
+    
+    def export_sample_rendered(self, index: int, path: Path, **kwargs) -> None:
         pcm, rate, _diag = self.render_sample_for_wav(index, **kwargs)
         write_wav(path, pcm, rate)
-
-
-    def export_loop_preview_rendered(self: MLTBank, index: int, path: Path, preview_seconds: int = 20, **kwargs) -> None:
+    
+    
+    def export_loop_preview_rendered(self, index: int, path: Path, preview_seconds: int = 20, **kwargs) -> None:
         pcm, rate, _diag = self.render_loop_preview_for_wav(index, preview_seconds=preview_seconds, **kwargs)
         write_wav(path, pcm, rate)
-
-
-    def export_all_rendered(self: MLTBank, out_dir: Path, **kwargs) -> None:
+    
+    
+    def export_all_rendered(self, out_dir: Path, **kwargs) -> None:
         out_dir.mkdir(parents=True, exist_ok=True)
         rows = []
         for s in self.samples:
@@ -134,9 +135,9 @@ class GCAXRenderMixin:
                 writer = csv.DictWriter(f, fieldnames=fields)
                 writer.writeheader(); writer.writerows(rows)
         self.write_alias_csv(out_dir / f"{self.path.stem}_aliases.csv")
-
-
-    def write_audio_quality_report_csv(self: MLTBank, path: Path, **kwargs) -> None:
+    
+    
+    def write_audio_quality_report_csv(self, path: Path, **kwargs) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         rows = []
         for s in self.samples:
@@ -166,15 +167,3 @@ class GCAXRenderMixin:
         with path.open("w", encoding="utf-8-sig", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=fields)
             writer.writeheader(); writer.writerows(rows)
-
-
-# Add clean-render methods without changing the repacker.
-MLTBank.render_sample_for_wav = _bank_render_sample_for_wav  # type: ignore[attr-defined]
-MLTBank.render_loop_preview_for_wav = _bank_render_loop_preview_for_wav  # type: ignore[attr-defined]
-MLTBank.export_sample_rendered = _bank_export_sample_rendered  # type: ignore[attr-defined]
-MLTBank.export_loop_preview_rendered = _bank_export_loop_preview_rendered  # type: ignore[attr-defined]
-MLTBank.export_all_rendered = _bank_export_all_rendered  # type: ignore[attr-defined]
-MLTBank.write_audio_quality_report_csv = _bank_write_audio_quality_report_csv  # type: ignore[attr-defined]
-
-
-# GUI additions
