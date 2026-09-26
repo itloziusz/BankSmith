@@ -21,6 +21,7 @@ from .dsp import *
 from .audio import *
 from .bank import *
 from .adapters import open_editable_bank
+from .branding import PROJECT_TOOL_NAME
 
 class GUIProjectMixin:
     def save_project_json(self) -> None:
@@ -32,7 +33,7 @@ class GUIProjectMixin:
             return
         try:
             data = {
-                "tool": "BankSmith project",
+                "tool": PROJECT_TOOL_NAME,
                 "format_version": 2,
                 "soundbank_path": str(self.bank.path),
                 "mlt_path": str(self.bank.path),  # legacy compatibility
