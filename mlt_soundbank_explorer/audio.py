@@ -216,6 +216,46 @@ def resample_pcm16_bandlimited(pcm_le_i16: bytes, src_rate: int | float, dst_rat
     return i16_list_to_pcm16_bytes(out)
 
 
+
+def _cubic_interp_i16(y0: int, y1: int, y2: int, y3: int, t: float) -> int:
+    a0 = -0.5 * y0 + 1.5 * y1 - 1.5 * y2 + 0.5 * y3
+    a1 = y0 - 2.5 * y1 + 2.0 * y2 - 0.5 * y3
+    a2 = -0.5 * y0 + 0.5 * y2
+    a3 = y1
+    return clamp16(round(((a0 * t + a1) * t + a2) * t + a3))
+
+
+def resample_pcm16_cubic(
+    pcm_le_i16: bytes,
+    src_rate: int | float,
+    dst_rate: int | float,
+) -> bytes:
+    """Dependency-free cubic mono PCM16 resampler used for upsampling."""
+    src_rate_f = float(src_rate)
+    dst_rate_f = float(dst_rate)
+    if src_rate_f <= 0 or dst_rate_f <= 0 or abs(src_rate_f - dst_rate_f) < 1e-9:
+        return pcm_le_i16
+    samples = pcm16_bytes_to_list(pcm_le_i16)
+    if len(samples) < 4:
+        return resample_pcm16_linear(pcm_le_i16, src_rate_f, dst_rate_f)
+    new_len = max(1, int(round(len(samples) * dst_rate_f / src_rate_f)))
+    if new_len == 1:
+        return struct.pack("<h", samples[0])
+    out: List[int] = []
+    ratio = src_rate_f / dst_rate_f
+    last = len(samples) - 1
+    for i in range(new_len):
+        pos = i * ratio
+        j = int(pos)
+        t = pos - j
+        j0 = max(0, j - 1)
+        j1 = max(0, min(last, j))
+        j2 = max(0, min(last, j + 1))
+        j3 = max(0, min(last, j + 2))
+        out.append(_cubic_interp_i16(samples[j0], samples[j1], samples[j2], samples[j3], t))
+    return i16_list_to_pcm16_bytes(out)
+
+
 def resample_pcm16_for_replacement(pcm_le_i16: bytes, src_rate: int | float, dst_rate: int | float) -> bytes:
     """Use anti-aliased downsampling and smooth cubic upsampling for imports."""
     if float(dst_rate) < float(src_rate):
