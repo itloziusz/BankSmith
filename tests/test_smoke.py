@@ -4,6 +4,7 @@ import tempfile
 from pathlib import Path
 
 import mlt_soundbank_explorer as pkg
+import banksmith as banksmith_pkg
 from multi_format_adapter import wrap_gcax_mpb_as_mlt
 from soundbank_formats import inspect_soundbank
 
@@ -73,3 +74,17 @@ def test_dreamcast_public_backends() -> None:
     assert pkg.DreamcastStandaloneMPBBank is not None
     assert pkg.DreamcastSMLTBank is not None
     assert pkg.DreamcastMDTBank is not None
+
+
+def test_banksmith_brand_api() -> None:
+    assert banksmith_pkg.BankSmithApp is pkg.BankSmithApp
+    assert banksmith_pkg.MLTBank is pkg.MLTBank
+    assert banksmith_pkg.DreamcastMDTBank is pkg.DreamcastMDTBank
+
+
+def test_banksmith_primary_launcher_exists() -> None:
+    launcher = Path(__file__).resolve().parents[1] / "BankSmith.py"
+    assert launcher.exists()
+    text = launcher.read_text(encoding="utf-8")
+    assert "BankSmith" in text
+    assert "mlt_soundbank_explorer.cli" in text
