@@ -6,7 +6,7 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
-from mlt_soundbank_explorer.gui import MLTExplorerApp
+from mlt_soundbank_explorer import MLTExplorerApp
 from multi_format_adapter import open_editable_bank
 from soundbank_formats import extract_mdt_blocks, format_summary_text, inspect_soundbank
 
