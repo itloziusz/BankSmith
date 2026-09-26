@@ -213,6 +213,18 @@ class MLTBankBase:
                 raise ValueError(f"Sample {s.index} points outside MPBW")
             next_off = next((off for off in offsets if off > s.data_offset), self.mpbw_size)
             s.original_extent = next_off - s.data_offset
+
+            # Raw big-endian PCM16 entries (type 0x0A) leave the DSP sample
+            # count/nibble fields at zero. Their valid PCM length is carried by
+            # the direct sample-end field and padded MPBW extent instead.
+            if s.type_byte == 0x0A and s.sample_count == 0:
+                capacity_samples = s.original_extent // 2
+                if 0 < s.loop_end < capacity_samples:
+                    s.sample_count = int(s.loop_end) + 1
+                else:
+                    s.sample_count = capacity_samples
+                s.byte_count = s.sample_count * 2
+
             if s.byte_count > s.original_extent:
                 raise ValueError(
                     f"Sample {s.index} encoded length exceeds its MPBW extent "
