@@ -23,7 +23,7 @@ from .bank import *
 
 class GUIActionsMixin:
     def open_mlt(self) -> None:
-        path = filedialog.askopenfilename(title="Open MLT", filetypes=[("MLT files", "*.mlt"), ("All files", "*.*")])
+        path = filedialog.askopenfilename(title="Open Soundbank", filetypes=[("Supported soundbanks", "*.mlt *.mpb *.mdt"), ("All files", "*.*")])
         if not path:
             return
         try:

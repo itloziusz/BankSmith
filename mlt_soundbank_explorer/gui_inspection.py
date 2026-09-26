@@ -128,7 +128,7 @@ class GUIInspectionMixin:
                 "replacement": s.replacement_label,
             })
         return {
-            "tool": "MLT Soundbank Explorer bank tree",
+            "tool": "BankSmith bank tree",
             "source": str(bank.path),
             "mltm_directory": [
                 {

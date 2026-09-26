@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compatibility launcher for the packaged multi-format GUI."""
+"""Legacy compatibility launcher for the BankSmith multi-format GUI."""
 from __future__ import annotations
 
 import sys

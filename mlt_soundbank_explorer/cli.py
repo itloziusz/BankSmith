@@ -11,22 +11,22 @@ from .render_audio import DEFAULT_CLEAN_RENDER_RATE
 
 
 def print_cli_usage() -> None:
-    print("""MLT Soundbank Explorer
+    print("""BankSmith — Multi-Format Soundbank Editor
 
 Usage:
-  python MLT_Soundbank_Explorer.py [soundbank]                         Open the multi-format GUI
-  python MLT_Soundbank_Explorer.py --inspect file [report.json]
-  python MLT_Soundbank_Explorer.py --extract-mdt file.mdt [out_dir]
-  python MLT_Soundbank_Explorer.py --validate bank [report.csv] [trigger_note]
-  python MLT_Soundbank_Explorer.py --repack-copy bank [out_file]
-  python MLT_Soundbank_Explorer.py --export-all bank [out_dir] [trigger_note]
-  python MLT_Soundbank_Explorer.py --export-all-clean bank [out_dir] [trigger_note] [render_hz]
-  python MLT_Soundbank_Explorer.py --audio-quality-report bank [report.csv] [trigger_note] [render_hz]
-  python MLT_Soundbank_Explorer.py --export-loop-preview bank index out.wav [seconds] [trigger_note]
-  python MLT_Soundbank_Explorer.py --loop-report bank [report.csv]
-  python MLT_Soundbank_Explorer.py --loop-seam-report bank [report.csv] [seconds] [trigger_note]
-  python MLT_Soundbank_Explorer.py --save-aliases bank [aliases.csv]
-  python MLT_Soundbank_Explorer.py --parameter-forensics bank.mlt [out_dir] [trigger_note]
+  python BankSmith.py [soundbank]                         Open the multi-format GUI
+  python BankSmith.py --inspect file [report.json]
+  python BankSmith.py --extract-mdt file.mdt [out_dir]
+  python BankSmith.py --validate bank [report.csv] [trigger_note]
+  python BankSmith.py --repack-copy bank [out_file]
+  python BankSmith.py --export-all bank [out_dir] [trigger_note]
+  python BankSmith.py --export-all-clean bank [out_dir] [trigger_note] [render_hz]
+  python BankSmith.py --audio-quality-report bank [report.csv] [trigger_note] [render_hz]
+  python BankSmith.py --export-loop-preview bank index out.wav [seconds] [trigger_note]
+  python BankSmith.py --loop-report bank [report.csv]
+  python BankSmith.py --loop-seam-report bank [report.csv] [seconds] [trigger_note]
+  python BankSmith.py --save-aliases bank [aliases.csv]
+  python BankSmith.py --parameter-forensics bank.mlt [out_dir] [trigger_note]
 
 Editable bank formats:
   - gcaxMLT archives

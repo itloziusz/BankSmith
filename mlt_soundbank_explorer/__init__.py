@@ -1,4 +1,4 @@
-"""Modular MLT Soundbank Explorer package."""
+"""BankSmith multi-format soundbank toolkit.\n\nThe historical mlt_soundbank_explorer package name is retained for compatibility.\n"""
 
 from .core import *
 from .dsp import *
@@ -16,10 +16,13 @@ from .dreamcast_bank import (
 from .multi_gui import MultiFormatExplorerApp
 from .cli import main, print_cli_usage
 
+BankSmithApp = MultiFormatExplorerApp
+
 __all__ = [
     "MLTBank",
     "MLTExplorerApp",
     "MultiFormatExplorerApp",
+    "BankSmithApp",
     "StandaloneGCAXMPBBank",
     "DreamcastStandaloneMPBBank",
     "DreamcastSMLTBank",

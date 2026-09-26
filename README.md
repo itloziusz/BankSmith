@@ -1,8 +1,10 @@
-# MLT Soundbank Explorer
+# BankSmith
+
+**Multi-Format Soundbank Editor for GameCube gcax, Dreamcast AICA, and Sonic Shuffle audio banks.**
 
 ## Overview
 
-**MLT Soundbank Explorer** is a multi-format desktop soundbank editor for Sega/GameCube-era audio data. It can inspect, audition, extract, replace, validate, and repack both Nintendo/GameCube `gcax` banks and Sega Dreamcast/AICA sound-driver formats.
+**BankSmith** is a multi-format desktop soundbank editor for Sega/GameCube-era audio data. It can inspect, audition, extract, replace, validate, and repack both Nintendo/GameCube `gcax` banks and Sega Dreamcast/AICA sound-driver formats.
 
 Current editable families include:
 
@@ -41,7 +43,7 @@ The application provides the following functions:
 
 ## Safety and File-Integrity Model
 
-MLT Soundbank Explorer does not automatically overwrite the source soundbank. Edited banks should be written to a distinct output path by using the **Save Repacked As** command. The original file extension is preserved for MLT, MPB, and MDT sources.
+BankSmith does not automatically overwrite the source soundbank. Edited banks should be written to a distinct output path by using the **Save Repacked As** command. The original file extension is preserved for MLT, MPB, and MDT sources.
 
 A conservative workflow is strongly recommended:
 
@@ -52,6 +54,16 @@ A conservative workflow is strongly recommended:
 5. Verify the resulting bank in the intended game or runtime environment.
 
 Although the application preserves known structures and recalculates affected offsets, the MLT family contains fields whose interpretation may vary between titles. Runtime verification therefore remains necessary.
+
+## Naming and Compatibility
+
+The project is now named **BankSmith**. The new primary entry point is:
+
+```bash
+python BankSmith.py
+```
+
+The new public package alias is `banksmith`, so both `import banksmith` and `python -m banksmith` are supported. The historical `mlt_soundbank_explorer` package remains available for backward compatibility with existing scripts and imports. Legacy launcher filenames continue to work, but new documentation and examples use the BankSmith name.
 
 ## System Requirements
 
@@ -68,18 +80,19 @@ The core application does not require third-party Python packages.
 
 ## Launching the Application
 
-Start the graphical interface with:
+Start the graphical interface with either entry point:
 
 ```bash
-python MLT_Soundbank_Explorer.py
+python BankSmith.py
+python -m banksmith
 ```
 
 Open a specific supported soundbank at launch with:
 
 ```bash
-python MLT_Soundbank_Explorer.py bank.mlt
-python MLT_Soundbank_Explorer.py bank.mpb
-python MLT_Soundbank_Explorer.py sound.mdt
+python BankSmith.py bank.mlt
+python BankSmith.py bank.mpb
+python BankSmith.py sound.mdt
 ```
 
 ## Playback-Rate Handling
@@ -212,55 +225,55 @@ This arrangement prevents rate or processing settings from being read in a parti
 Display command-line help:
 
 ```bash
-python MLT_Soundbank_Explorer.py --help
+python BankSmith.py --help
 ```
 
 Inspect any supported container:
 
 ```bash
-python MLT_Soundbank_Explorer.py --inspect bank.mlt report.json
+python BankSmith.py --inspect bank.mlt report.json
 ```
 
 Extract Sonic Shuffle MDT blocks:
 
 ```bash
-python MLT_Soundbank_Explorer.py --extract-mdt sound.mdt output_folder
+python BankSmith.py --extract-mdt sound.mdt output_folder
 ```
 
 Validate an editable bank and write a report:
 
 ```bash
-python MLT_Soundbank_Explorer.py --validate bank.mlt report.csv
+python BankSmith.py --validate bank.mlt report.csv
 ```
 
 Perform a no-edit repacking test:
 
 ```bash
-python MLT_Soundbank_Explorer.py --repack-copy bank.mlt bank_repacked.mlt
+python BankSmith.py --repack-copy bank.mlt bank_repacked.mlt
 ```
 
 Export all samples as WAV files:
 
 ```bash
-python MLT_Soundbank_Explorer.py --export-all bank.mlt output_folder
+python BankSmith.py --export-all bank.mlt output_folder
 ```
 
 Export all samples through the cleaned-audio path:
 
 ```bash
-python MLT_Soundbank_Explorer.py --export-all-clean bank.mlt output_folder 60 44100
+python BankSmith.py --export-all-clean bank.mlt output_folder 60 44100
 ```
 
 Generate a loop report:
 
 ```bash
-python MLT_Soundbank_Explorer.py --loop-report bank.mlt loop_report.csv
+python BankSmith.py --loop-report bank.mlt loop_report.csv
 ```
 
 Export a loop-preview WAV for one sample:
 
 ```bash
-python MLT_Soundbank_Explorer.py --export-loop-preview bank.mlt 0 preview.wav 20 60
+python BankSmith.py --export-loop-preview bank.mlt 0 preview.wav 20 60
 ```
 
 The exact set of options available in a given build should be confirmed with `--help`.
@@ -317,7 +330,7 @@ Their absence does not prevent the principal operations of opening, auditioning,
 
 For reproducible technical work, retain the following materials together:
 
-- the original MLT archive;
+- the original source soundbank;
 - the edited archive;
 - the project JSON file;
 - replacement WAV sources;
@@ -371,7 +384,7 @@ The original ~4,400-line single-file implementation has been split into focused 
 - `mlt_soundbank_explorer/multi_gui.py` — multi-format GUI;
 - `mlt_soundbank_explorer/cli.py` — command-line interface.
 
-The historical `MLT_Soundbank_Explorer.py`, `Multi_Format_Soundbank_Explorer.py`, `soundbank_formats.py`, and `multi_format_adapter.py` entry points remain as compatibility wrappers.
+`BankSmith.py` is the primary launcher. The historical `MLT_Soundbank_Explorer.py`, `Multi_Format_Soundbank_Explorer.py`, `soundbank_formats.py`, and `multi_format_adapter.py` entry points remain as compatibility wrappers.
 
 ## Major Fixes Included in the Multi-Format Rewrite
 
