@@ -77,6 +77,7 @@ class StandaloneGCAXMPBBank(MLTBank):
     def __init__(self, path: Path):
         self.standalone_path = Path(path)
         raw = self.standalone_path.read_bytes()
+        self._validation_source_data = raw
         span = _standalone_gcax_mpb_declared_span(raw)
         self.standalone_suffix = raw[span:]
 
