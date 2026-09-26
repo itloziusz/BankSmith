@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Compatibility launcher for the modular MLT Soundbank Explorer.
+"""Legacy compatibility launcher for BankSmith.
 
-The implementation now lives under the mlt_soundbank_explorer package.
+The BankSmith implementation lives under the historical mlt_soundbank_explorer package.
 Existing imports and the historical script entry point remain supported.
 """
 from __future__ import annotations
