@@ -4,9 +4,11 @@ from .gui_base import MLTExplorerBase
 from .gui_inspection import GUIInspectionMixin
 from .gui_actions import GUIActionsMixin
 from .gui_project import GUIProjectMixin
+from .gui_render import GUIRenderMixin
 
 
 class MLTExplorerApp(
+    GUIRenderMixin,
     GUIProjectMixin,
     GUIActionsMixin,
     GUIInspectionMixin,
