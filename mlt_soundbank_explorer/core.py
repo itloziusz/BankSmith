@@ -268,7 +268,9 @@ class SampleInfo:
 
     @property
     def storage_frame_byte_count(self) -> int:
-        """Physical DSP frame bytes needed to decode every advertised sample."""
+        """Physical bytes occupied by the current sample payload."""
         if self.fmt == 0 and self.type_byte == 0:
             return 8 * math.ceil(self.current_sample_count / 14)
+        if self.type_byte == 0x0A:
+            return self.current_sample_count * 2
         return self.logical_encoded_byte_count
