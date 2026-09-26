@@ -282,3 +282,21 @@ Before a modified archive is distributed or integrated into a project, preserve 
 The vertical scrollbar of the right-hand operations panel is displayed only when the panel content exceeds the currently available window height. It is removed automatically when the window becomes sufficiently tall and restored immediately when the window is reduced. Mouse-wheel navigation is supported while the pointer is positioned over the panel.
 
 The `Program filter` control restricts the sample list according to program usage. Its default value, `All programs`, disables program-specific filtering.
+
+
+## Modular Source Layout
+
+The original single-file implementation has been split into focused modules:
+
+- `mlt_soundbank_explorer/core.py` — binary helpers, playback-rate logic and shared data records;
+- `mlt_soundbank_explorer/dsp.py` — Nintendo/GameCube DSP-ADPCM codec;
+- `mlt_soundbank_explorer/audio.py` — WAV I/O, resampling and loop-preview processing;
+- `mlt_soundbank_explorer/bank.py` — gcax MLT/MPB parsing, validation, replacement and repacking;
+- `mlt_soundbank_explorer/gui.py` — base Tkinter interface;
+- `mlt_soundbank_explorer/clean_audio.py` — optional rendered-audio cleanup/export layer;
+- `mlt_soundbank_explorer/cli.py` — command-line entry point;
+- `soundbank_formats.py` — format-family probing for gcax, Dreamcast SMLT/SMPB and Sonic Shuffle MDT;
+- `multi_format_adapter.py` — standalone gcaxMPB adapter;
+- `Multi_Format_Soundbank_Explorer.py` — multi-format GUI launcher.
+
+`MLT_Soundbank_Explorer.py` remains as a small compatibility launcher so existing scripts and launch commands continue to work.
