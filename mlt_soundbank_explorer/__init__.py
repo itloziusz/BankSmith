@@ -13,10 +13,8 @@ from .dreamcast_bank import (
     DreamcastSMLTBank,
     DreamcastMDTBank,
 )
-from .multi_gui import MultiFormatExplorerApp
+from .multi_gui import BankSmithApp, MultiFormatExplorerApp
 from .cli import main, print_cli_usage
-
-BankSmithApp = MultiFormatExplorerApp
 
 __all__ = [
     "MLTBank",
