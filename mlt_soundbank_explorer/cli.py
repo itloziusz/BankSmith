@@ -31,11 +31,9 @@ Usage:
 Editable bank formats:
   - gcaxMLT archives
   - standalone gcaxMPB banks
-
-Structural inspection:
-  - Dreamcast SMLT
-  - Dreamcast SMPB
-  - Sonic Shuffle MDT
+  - Dreamcast SMLT archives
+  - standalone Dreamcast SMPB/SMDB banks
+  - Sonic Shuffle MDT containers with SMPB/SMDB/SOSB audio blocks
 
 Replacement WAV import accepts PCM 8/16/24/32-bit and IEEE-float 32/64-bit,
 including WAVE_FORMAT_EXTENSIBLE. Source files are never overwritten in place.
@@ -87,8 +85,11 @@ def main(argv: List[str]) -> int:
         return 1 if errors else 0
 
     if len(argv) >= 3 and argv[1] == "--parameter-forensics":
-        import mlt_parameter_forensics
         input_path = Path(argv[2])
+        probe = inspect_soundbank(input_path)
+        if not probe.family.startswith("gcax"):
+            raise SystemExit("--parameter-forensics is specific to gcax MPBP/MPBW banks")
+        import mlt_parameter_forensics
         out_dir = Path(argv[3]) if len(argv) >= 4 else input_path.with_name(input_path.stem + "_parameter_forensics")
         trigger_note = int(argv[4]) if len(argv) >= 5 else DEFAULT_TRIGGER_NOTE
         summary = mlt_parameter_forensics.run(input_path, out_dir, trigger_note)
