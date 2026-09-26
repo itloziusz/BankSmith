@@ -1,4 +1,6 @@
-# BankSmith\n\n**Multi-Format Soundbank Editor for GameCube gcax, Dreamcast AICA, and Sonic Shuffle audio banks.**
+# BankSmith
+
+**Multi-Format Soundbank Editor for GameCube gcax, Dreamcast AICA, and Sonic Shuffle audio banks.**
 
 ## Overview
 
@@ -61,7 +63,7 @@ The project is now named **BankSmith**. The new primary entry point is:
 python BankSmith.py
 ```
 
-The internal Python package remains `mlt_soundbank_explorer` for backward compatibility with existing scripts and imports. Legacy launcher filenames continue to work, but new documentation and examples use the BankSmith name.
+The new public package alias is `banksmith`, so both `import banksmith` and `python -m banksmith` are supported. The historical `mlt_soundbank_explorer` package remains available for backward compatibility with existing scripts and imports. Legacy launcher filenames continue to work, but new documentation and examples use the BankSmith name.
 
 ## System Requirements
 
@@ -78,10 +80,11 @@ The core application does not require third-party Python packages.
 
 ## Launching the Application
 
-Start the graphical interface with:
+Start the graphical interface with either entry point:
 
 ```bash
 python BankSmith.py
+python -m banksmith
 ```
 
 Open a specific supported soundbank at launch with:
@@ -327,7 +330,7 @@ Their absence does not prevent the principal operations of opening, auditioning,
 
 For reproducible technical work, retain the following materials together:
 
-- the original MLT archive;
+- the original source soundbank;
 - the edited archive;
 - the project JSON file;
 - replacement WAV sources;
