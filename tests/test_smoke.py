@@ -39,3 +39,37 @@ def test_standalone_gcax_mpb_wrapper() -> None:
     assert b"gcaxMLTM" in wrapped
     assert wrapped[0x30:0x38] == b"gcaxMPB "
     assert int.from_bytes(wrapped[12:16], "big") == len(wrapped)
+
+
+def test_aica_adpcm_codec_shape() -> None:
+    import math
+    import struct
+    from mlt_soundbank_explorer.dreamcast_codec import encode_aica_adpcm, decode_aica_adpcm
+
+    samples = [int(12000 * math.sin(i * 0.19)) for i in range(257)]
+    pcm = struct.pack("<" + "h" * len(samples), *samples)
+    encoded = encode_aica_adpcm(pcm)
+    assert len(encoded) == (len(samples) + 1) // 2
+    decoded = decode_aica_adpcm(encoded, len(samples))
+    assert len(decoded) == len(pcm)
+    assert any(decoded)
+
+
+def test_dreamcast_dispatch_minimal_smlt() -> None:
+    from mlt_soundbank_explorer.formats import inspect_soundbank
+
+    data = bytearray(0x20)
+    data[0:4] = b"SMLT"
+    data[8:12] = (0).to_bytes(4, "little")
+    with tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "empty.mlt"
+        path.write_bytes(data)
+        probe = inspect_soundbank(path)
+        assert probe.family == "Dreamcast SMLT"
+        assert probe.editable_audio is True
+
+
+def test_dreamcast_public_backends() -> None:
+    assert pkg.DreamcastStandaloneMPBBank is not None
+    assert pkg.DreamcastSMLTBank is not None
+    assert pkg.DreamcastMDTBank is not None
