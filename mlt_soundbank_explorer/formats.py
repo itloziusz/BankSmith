@@ -120,8 +120,8 @@ def _probe_smlt(path: Path, data: bytes) -> SoundbankProbe:
         raise ValueError(f"SMLT directory count {count} exceeds file bounds")
     entries: List[ProbeEntry] = []
     notes = [
-        "Dreamcast Sound Library multi-unit; structural inspection is enabled, "
-        "audio editing is not yet enabled for this family."
+        "Dreamcast Sound Library multi-unit with editable embedded SMPB/SMDB tones.",
+        "AICA ADPCM, PCM8 and PCM16LE decode/export/replacement are supported."
     ]
     for i in range(count):
         off = 0x20 + i * 0x20
@@ -168,7 +168,7 @@ def _probe_smlt(path: Path, data: bytes) -> SoundbankProbe:
                     entry_notes,
                 )
             )
-    return SoundbankProbe(str(path), "Dreamcast SMLT", "little", len(data), False, entries, notes)
+    return SoundbankProbe(str(path), "Dreamcast SMLT", "little", len(data), True, entries, notes)
 
 
 def _probe_smpb(path: Path, data: bytes) -> SoundbankProbe:
@@ -178,9 +178,8 @@ def _probe_smpb(path: Path, data: bytes) -> SoundbankProbe:
     declared_hint = _u32le(data, 8)
     entries: List[ProbeEntry] = []
     notes = [
-        f"Dreamcast MIDI program bank (SMPB), version/id word=0x{version:X}.",
-        "Structural inspection is enabled; Dreamcast/AICA sample decoding and write-back "
-        "are intentionally not treated as gcax DSP-ADPCM.",
+        f"Dreamcast MIDI program bank (SMPB/SMDB), version/id word=0x{version:X}.",
+        "Editable AICA ADPCM, PCM8 and PCM16LE tone data is supported.",
     ]
     if declared_hint not in (
         0,
@@ -213,7 +212,7 @@ def _probe_smpb(path: Path, data: bytes) -> SoundbankProbe:
         )
         if len(entries) >= 128:
             break
-    return SoundbankProbe(str(path), "Dreamcast SMPB", "little", len(data), False, entries, notes)
+    return SoundbankProbe(str(path), "Dreamcast SMPB", "little", len(data), True, entries, notes)
 
 
 def _probe_mdt(path: Path, data: bytes) -> SoundbankProbe:
@@ -225,7 +224,7 @@ def _probe_mdt(path: Path, data: bytes) -> SoundbankProbe:
     count = first // 4
     entries: List[ProbeEntry] = []
     notes = [
-        "Sonic Shuffle MDT container; blocks are size-prefixed Dreamcast sound-driver banks."
+        "Sonic Shuffle MDT container; size-prefixed SMPB/SMDB and SOSB audio blocks are editable."
     ]
     offsets = [_u32le(data, i * 4) for i in range(count)]
     prev = -1
@@ -241,7 +240,7 @@ def _probe_mdt(path: Path, data: bytes) -> SoundbankProbe:
         if declared and abs(declared - extent) > 0x20:
             note += f"; table extent=0x{extent:X}"
         entries.append(ProbeEntry(i, kind, off, extent, notes=note))
-    return SoundbankProbe(str(path), "Sonic Shuffle MDT", "little", len(data), False, entries, notes)
+    return SoundbankProbe(str(path), "Sonic Shuffle MDT", "little", len(data), True, entries, notes)
 
 
 def inspect_soundbank(path: Path | str) -> SoundbankProbe:
@@ -253,7 +252,7 @@ def inspect_soundbank(path: Path | str) -> SoundbankProbe:
         return _probe_gcax_mpb(path, data)
     if data.startswith(b"SMLT"):
         return _probe_smlt(path, data)
-    if data.startswith(b"SMPB"):
+    if data.startswith((b"SMPB", b"SMDB")):
         return _probe_smpb(path, data)
     if path.suffix.lower() == ".mdt":
         return _probe_mdt(path, data)
