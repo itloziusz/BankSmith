@@ -95,7 +95,7 @@ def test_banksmith_primary_launcher_exists() -> None:
 
 def test_no_legacy_product_branding() -> None:
     root = Path(__file__).resolve().parents[1]
-    forbidden = "MLT Soundbank Explorer"
+    forbidden = "MLT Soundbank" + " Explorer"
     extensions = {".py", ".md", ".yml", ".yaml", ".txt", ".toml"}
     for path in root.rglob("*"):
         if not path.is_file() or path.suffix.lower() not in extensions:
