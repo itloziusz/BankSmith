@@ -20,13 +20,14 @@ from .core import *
 from .dsp import *
 from .audio import *
 from .bank import *
+from .branding import APP_TITLE
 
 from .gui_widgets import *
 
 class MLTExplorerBase:
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("BankSmith — Multi-Format Soundbank Editor")
+        self.root.title(APP_TITLE)
         self.root.geometry("1180x720")
         self.bank: Optional[MLTBank] = None
         self.current_temp_wav: Optional[Path] = None

@@ -12,7 +12,7 @@ from .formats import extract_mdt_blocks, format_summary_text, inspect_soundbank
 from .core import note_name
 
 
-class MultiFormatExplorerApp(MLTExplorerApp):
+class BankSmithApp(MLTExplorerApp):
 
     def _is_dreamcast_bank(self) -> bool:
         return bool(self.bank and getattr(self.bank, "family", "") in (
@@ -240,9 +240,13 @@ class MultiFormatExplorerApp(MLTExplorerApp):
             messagebox.showerror("Open failed", str(exc))
 
 
+# Backward-compatible public alias.
+MultiFormatExplorerApp = BankSmithApp
+
+
 def main(argv: list[str]) -> int:
     root = tk.Tk()
-    app = MultiFormatExplorerApp(root)
+    app = BankSmithApp(root)
 
     if len(argv) >= 2 and Path(argv[1]).exists():
         path = Path(argv[1])

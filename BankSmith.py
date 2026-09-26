@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import sys
 
-from mlt_soundbank_explorer import *
-from mlt_soundbank_explorer.cli import main, print_cli_usage
+from banksmith import *
+from banksmith import main, print_cli_usage
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 """BankSmith multi-format soundbank toolkit.\n\nThe historical mlt_soundbank_explorer package name is retained for compatibility.\n"""
 
+from .branding import APP_NAME, APP_TITLE, PROJECT_TOOL_NAME, BANK_TREE_TOOL_NAME
 from .core import *
 from .dsp import *
 from .audio import *
@@ -13,12 +14,14 @@ from .dreamcast_bank import (
     DreamcastSMLTBank,
     DreamcastMDTBank,
 )
-from .multi_gui import MultiFormatExplorerApp
+from .multi_gui import BankSmithApp, MultiFormatExplorerApp
 from .cli import main, print_cli_usage
 
-BankSmithApp = MultiFormatExplorerApp
-
 __all__ = [
+    "APP_NAME",
+    "APP_TITLE",
+    "PROJECT_TOOL_NAME",
+    "BANK_TREE_TOOL_NAME",
     "MLTBank",
     "MLTExplorerApp",
     "MultiFormatExplorerApp",
