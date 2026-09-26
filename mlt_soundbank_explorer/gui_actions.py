@@ -386,8 +386,20 @@ class GUIActionsMixin:
     def save_as(self) -> None:
         if not self.bank:
             return
-        default = self.bank.path.with_name(self.bank.path.stem + "_repacked.mlt").name
-        path = filedialog.asksaveasfilename(title="Save repacked MLT", initialfile=default, defaultextension=".mlt", filetypes=[("MLT", "*.mlt"), ("All files", "*.*")])
+        source_suffix = self.bank.path.suffix.lower()
+        if source_suffix == ".mpb":
+            default_ext = ".mpb"
+            format_label = "MPB"
+        else:
+            default_ext = ".mlt"
+            format_label = "MLT"
+        default = self.bank.path.with_name(self.bank.path.stem + "_repacked" + default_ext).name
+        path = filedialog.asksaveasfilename(
+            title=f"Save repacked {format_label}",
+            initialfile=default,
+            defaultextension=default_ext,
+            filetypes=[(format_label, f"*{default_ext}"), ("All files", "*.*")],
+        )
         if not path:
             return
         self._run_background("Save repacked MLT", lambda: self.bank.save_as(Path(path)))
