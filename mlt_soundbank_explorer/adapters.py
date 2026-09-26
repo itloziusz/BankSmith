@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from .bank import MLTBank
+from .dreamcast_bank import DreamcastStandaloneMPBBank, DreamcastSMLTBank, DreamcastMDTBank
 from .formats import SoundbankProbe, inspect_soundbank
 
 
@@ -130,18 +131,21 @@ class StandaloneGCAXMPBBank(MLTBank):
 
 
 def open_editable_bank(path: Path | str):
-    """Open an editable gcax bank, either MLT or standalone MPB."""
+    """Open any soundbank family that has an editor backend."""
     path = Path(path)
     head = path.read_bytes()[:8]
     if head == b"gcaxMLT ":
         return MLTBank(path)
     if head == b"gcaxMPB ":
         return StandaloneGCAXMPBBank(path)
+    if head[:4] in (b"SMPB", b"SMDB"):
+        return DreamcastStandaloneMPBBank(path)
+    if head[:4] == b"SMLT":
+        return DreamcastSMLTBank(path)
+    if path.suffix.lower() == ".mdt":
+        return DreamcastMDTBank(path)
     probe = inspect_soundbank(path)
-    raise ValueError(
-        f"{probe.family} is recognised, but is currently structural-inspection-only; "
-        "Dreamcast/AICA data must not be decoded with the GameCube DSP-ADPCM path."
-    )
+    raise ValueError(f"{probe.family} is recognised but has no editable backend.")
 
 
 def inspect_any(path: Path | str) -> SoundbankProbe:
