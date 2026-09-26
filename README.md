@@ -300,3 +300,31 @@ The original single-file implementation has been split into focused modules:
 - `Multi_Format_Soundbank_Explorer.py` — multi-format GUI launcher.
 
 `MLT_Soundbank_Explorer.py` remains as a small compatibility launcher so existing scripts and launch commands continue to work.
+
+
+## Dreamcast and Sonic Shuffle Support
+
+The explorer also supports Sega Dreamcast sound-driver banks alongside the
+GameCube gcax family.
+
+Editable Dreamcast paths include:
+
+- standalone `SMPB` / `SMDB` program banks;
+- `SMLT` multi-unit archives containing SMPB/SMDB data;
+- Sonic Shuffle `MDT` containers containing SMPB/SMDB and SOSB audio blocks.
+
+The Dreamcast backend keeps AICA audio separate from Nintendo DSP-ADPCM. It
+supports AICA 4-bit ADPCM, signed PCM8 and little-endian PCM16 tone data,
+including WAV export/preview, loop previews, WAV replacement, container
+rebuilding, validation and reopen checks.
+
+Dreamcast playback rates are derived from the bank's base-note metadata. The
+observed Sega convention maps base note 60 to 44100 Hz and successive semitone
+steps accordingly.
+
+### Corpus verification
+
+The multi-format implementation is regression-tested against the supplied
+GameCube/Dreamcast/Sonic Shuffle corpus. No-edit repacking is required to remain
+byte-identical where supported, and edited banks are reopened and decoded after
+write-back before changes are considered ready for the main branch.
