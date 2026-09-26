@@ -26,7 +26,7 @@ from .gui_widgets import *
 class MLTExplorerBase:
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("MLT Soundbank Explorer")
+        self.root.title("BankSmith — Multi-Format Soundbank Editor")
         self.root.geometry("1180x720")
         self.bank: Optional[MLTBank] = None
         self.current_temp_wav: Optional[Path] = None
@@ -37,7 +37,7 @@ class MLTExplorerBase:
         self._settings_refresh_job: Optional[str] = None
         self._ui_queue: queue.Queue = queue.Queue()
         self._ui_queue_job: Optional[str] = None
-        self.status_var = tk.StringVar(value="Open an MLT file to begin.")
+        self.status_var = tk.StringVar(value="Open a soundbank to begin.")
         self.filter_var = tk.StringVar()
         self.loop_preview_seconds_var = tk.IntVar(value=20)
         self.loop_declick_var = tk.BooleanVar(value=True)
@@ -59,7 +59,7 @@ class MLTExplorerBase:
     def _build_menu(self) -> None:
         menubar = tk.Menu(self.root)
         file_menu = tk.Menu(menubar, tearoff=False)
-        file_menu.add_command(label="Open MLT...", command=self.open_mlt, accelerator="Ctrl+O")
+        file_menu.add_command(label="Open Soundbank...", command=self.open_mlt, accelerator="Ctrl+O")
         file_menu.add_command(label="Save Repacked As...", command=self.save_as, accelerator="Ctrl+S")
         file_menu.add_separator()
         file_menu.add_command(label="Load Editor Project JSON...", command=self.load_project_json)
@@ -88,8 +88,8 @@ class MLTExplorerBase:
         export_menu.add_command(label="Export Selected Loop Preview WAV...", command=self.export_loop_preview_selected)
         export_menu.add_command(label="Export All WAV...", command=self.export_all)
         export_menu.add_separator()
-        export_menu.add_command(label="Export Selected Raw DSP Payload...", command=self.export_selected_raw_payload)
-        export_menu.add_command(label="Export All Raw DSP Payloads...", command=self.export_all_raw_payloads)
+        export_menu.add_command(label="Export Selected Raw Encoded Payload...", command=self.export_selected_raw_payload)
+        export_menu.add_command(label="Export All Raw Encoded Payloads...", command=self.export_all_raw_payloads)
         export_menu.add_separator()
         export_menu.add_command(label="Save Aliases CSV...", command=self.save_aliases)
         export_menu.add_command(label="Save Loop Report CSV...", command=self.save_loop_report)
@@ -136,7 +136,7 @@ class MLTExplorerBase:
         top = ttk.Frame(self.root, padding=8)
         top.pack(side=tk.TOP, fill=tk.X)
 
-        ttk.Button(top, text="Open MLT", command=self.open_mlt).pack(side=tk.LEFT, padx=(0, 6))
+        ttk.Button(top, text="Open Soundbank", command=self.open_mlt).pack(side=tk.LEFT, padx=(0, 6))
         ttk.Button(top, text="Save Repacked As", command=self.save_as).pack(side=tk.LEFT, padx=(0, 6))
         ttk.Button(top, text="Export All WAV", command=self.export_all).pack(side=tk.LEFT, padx=(0, 6))
         ttk.Button(top, text="Batch Replace", command=self.batch_replace_from_folder_gui).pack(side=tk.LEFT, padx=(0, 6))
@@ -293,12 +293,14 @@ class MLTExplorerBase:
         ttk.Button(right, text="Run Deep Audit", command=self.save_deep_audit).pack(fill=tk.X, pady=3)
 
         help_text = (
-            "Workflow:\n"
-            "1. Open .mlt.\n"
-            "2. Export/preview samples.\n"
+            "BankSmith workflow:\n"
+            "1. Open a supported soundbank (.mlt, .mpb, .mdt).\n"
+            "2. Export or preview samples/tones.\n"
             "3. Replace entries with PCM WAV files.\n"
-            "4. Save Repacked As.\n\n"
-            "Always keep the original MLT as backup. The tool rebuilds MPBW and updates MPBP offsets automatically. Menus at the top expose extra export/audit/report actions. Loop preview is one gapless file with optional zero-cross/crossfade de-clicking. Game-pitch export uses stored sample-rate / 2 + split root key + trigger note. The default pitch preset is Base stored/2 rate."
+            "4. Validate and Save Repacked As.\n\n"
+            "Always keep the original source as a backup. BankSmith uses separate "
+            "GameCube gcax and Dreamcast AICA backends, rebuilds affected offsets "
+            "and containers, and provides gapless loop preview plus validation."
         )
         help_label = ttk.Label(right, text=help_text, justify=tk.LEFT, wraplength=390)
         help_label.pack(anchor=tk.SW, fill=tk.X, pady=(16, 0))
