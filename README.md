@@ -2,30 +2,46 @@
 
 ## Overview
 
-**MLT Soundbank Explorer** is a desktop application for the inspection, auditioning, extraction, replacement, validation, and repacking of `gcaxMLT` soundbanks and their embedded `gcaxMPB` sample data. The program is implemented in Python and uses Tkinter for its graphical user interface.
+**MLT Soundbank Explorer** is a multi-format desktop soundbank editor for Sega/GameCube-era audio data. It can inspect, audition, extract, replace, validate, and repack both Nintendo/GameCube `gcax` banks and Sega Dreamcast/AICA sound-driver formats.
 
-The application is intended for technical analysis and controlled editing of soundbanks that employ Nintendo/GameCube DSP-ADPCM sample encoding. Its design prioritises structural preservation, reproducible output, explicit validation, and non-destructive file handling.
+Current editable families include:
+
+- GameCube `gcaxMLT` archives;
+- standalone GameCube `gcaxMPB` banks;
+- Dreamcast `SMLT` multi-unit archives;
+- standalone Dreamcast `SMPB` / `SMDB` program banks;
+- Sonic Shuffle `MDT` containers with `SMPB`, `SMDB`, and `SOSB` audio blocks.
+
+The application is implemented in Python with a Tkinter interface. Its design prioritises structural preservation, reproducible output, explicit validation, byte-identical no-edit round trips where possible, and non-destructive file handling.
 
 ## Principal Capabilities
 
 The application provides the following functions:
 
-- opening `gcaxMLT` archives and examining embedded `gcaxMPB` structures;
-- enumerating sample records, stored rate values, loop metadata, and inferred program references;
-- decoding DSP-ADPCM material for real-time auditioning and PCM WAV export;
+- opening and editing GameCube `gcaxMLT` and standalone `gcaxMPB` banks;
+- opening and editing Dreamcast `SMLT`, `SMPB`, `SMDB`, and Sonic Shuffle `MDT` containers;
+- parsing embedded Dreamcast `SOSB` one-shot audio blocks inside MDT files;
+- enumerating sample/tone records, loop metadata, rate information, and program/layer/split references;
+- decoding Nintendo/GameCube DSP-ADPCM;
+- decoding Sega AICA 4-bit ADPCM, signed PCM8, and little-endian PCM16;
+- exporting decoded audio as mono PCM WAV;
+- real-time preview through the operating-system playback path;
 - generating continuous loop previews without an intro-to-loop playback hand-off;
 - importing PCM and IEEE floating-point WAV files;
-- converting imported material to mono 16-bit PCM before replacement encoding;
-- resampling imported audio to the effective target rate;
-- re-encoding replacement audio as compatible DSP-ADPCM data;
-- rebuilding the MPBW sample-data region and updating MPBP offsets;
-- writing a repacked MLT archive to a new output file;
-- exporting alias tables, loop reports, validation reports, quality-control data, and raw encoded payloads;
+- deterministic multichannel-to-mono conversion;
+- rate-aware resampling before replacement encoding;
+- re-encoding GameCube replacements as DSP-ADPCM;
+- re-encoding Dreamcast replacements in their original AICA/PCM format;
+- preserving raw GameCube PCM16 samples as raw PCM16 instead of silently converting them to DSP-ADPCM;
+- rebuilding MPBW/MPBP, Dreamcast bank data, SMLT units, and MDT block-offset tables;
+- saving edited files without overwriting the source by default;
+- exporting alias tables, loop reports, validation reports, quality-control data, structural reports, and raw encoded payloads;
+- CLI operation for inspection, validation, extraction, export, and repacking;
 - storing editor state and replacement references in project files.
 
 ## Safety and File-Integrity Model
 
-MLT Soundbank Explorer does not automatically overwrite the source archive. Edited banks should be written to a distinct output path by using the **Save Repacked As** command.
+MLT Soundbank Explorer does not automatically overwrite the source soundbank. Edited banks should be written to a distinct output path by using the **Save Repacked As** command. The original file extension is preserved for MLT, MPB, and MDT sources.
 
 A conservative workflow is strongly recommended:
 
@@ -58,15 +74,19 @@ Start the graphical interface with:
 python MLT_Soundbank_Explorer.py
 ```
 
-Open a specific MLT archive at launch with:
+Open a specific supported soundbank at launch with:
 
 ```bash
 python MLT_Soundbank_Explorer.py bank.mlt
+python MLT_Soundbank_Explorer.py bank.mpb
+python MLT_Soundbank_Explorer.py sound.mdt
 ```
 
-## Default Playback-Rate Preset
+## Playback-Rate Handling
 
-The default preset is:
+### GameCube gcax
+
+The default gcax preset is:
 
 ```text
 Base stored/2 rate
@@ -88,11 +108,17 @@ base_rate = stored_rate / 2
 effective_rate = base_rate × 2^((trigger_note − root_key) / 12)
 ```
 
-Because the default configuration is the stored base rate, opening or exporting a bank does not silently impose a C4- or C3-based pitch correction.
+Because the default configuration is the stored base rate, opening or exporting a gcax bank does not silently impose a C4- or C3-based pitch correction.
+
+### Dreamcast AICA
+
+Dreamcast MPB/OSB data does not contain the same explicit stored-Hz field as gcax MPBP entries. Playback rate is derived from the tone's base-note metadata using the Sega convention observed in the supported banks. Base note 60 maps to 44100 Hz, with semitone steps applied exponentially around that reference.
+
+The Dreamcast codec and rate path is intentionally separate from the GameCube DSP path.
 
 ## Recommended Editing Procedure
 
-1. Open the original `.mlt` archive.
+1. Open the original supported soundbank (`.mlt`, `.mpb`, or `.mdt`).
 2. Inspect sample metadata, program usage, loop state, and rate information.
 3. Audition or export the relevant samples.
 4. Replace selected samples with suitable WAV sources where required.
@@ -125,6 +151,20 @@ Replacement samples are encoded with a dependency-free DSP-ADPCM encoder. The en
 For looped material, the replacement process also reconstructs the relevant loop predictor and history state. The resulting encoded payload, nibble count, sample count, loop addresses, and MPBP record are used for both preview and final repacking so that the auditioned replacement corresponds to the data intended for storage.
 
 The encoder is designed for compatibility and preservation-oriented editing. For archival, production, or research use, the encoded result should still be compared with reference tools and verified in the target runtime.
+
+## Dreamcast AICA Audio
+
+Dreamcast audio is handled by a dedicated backend and is never passed through the Nintendo DSP-ADPCM decoder.
+
+Supported tone formats are:
+
+- AICA/Yamaha-style 4-bit ADPCM;
+- signed PCM8;
+- little-endian PCM16.
+
+Replacement WAVs are converted to mono PCM16, resampled to the target playback rate when needed, and re-encoded in the tone's original format. Shared-tone pointers, split references, loop boundaries, file-size fields, checksums, SMLT unit offsets, and MDT block offsets are rebuilt during save.
+
+SMPB/SMDB program banks use the documented Program → Layer → Split hierarchy. SOSB one-shot banks inside Sonic Shuffle MDT files are parsed and rebuilt through their own program/tone layout.
 
 ## Loop Preview and Boundary Processing
 
@@ -175,7 +215,19 @@ Display command-line help:
 python MLT_Soundbank_Explorer.py --help
 ```
 
-Validate a bank and write a report:
+Inspect any supported container:
+
+```bash
+python MLT_Soundbank_Explorer.py --inspect bank.mlt report.json
+```
+
+Extract Sonic Shuffle MDT blocks:
+
+```bash
+python MLT_Soundbank_Explorer.py --extract-mdt sound.mdt output_folder
+```
+
+Validate an editable bank and write a report:
 
 ```bash
 python MLT_Soundbank_Explorer.py --validate bank.mlt report.csv
@@ -217,7 +269,7 @@ The exact set of options available in a given build should be confirmed with `--
 
 The editor can store a project description in JSON format. A project may include:
 
-- the path of the opened MLT archive;
+- the path of the opened soundbank;
 - preview and export settings;
 - sample aliases;
 - paths of replacement WAV files;
@@ -236,7 +288,7 @@ Depending on the selected operation, the application can produce:
 - structural validation reports;
 - sample-rate and pitch diagnostics;
 - replacement quality measurements;
-- raw DSP-ADPCM payloads;
+- raw encoded payloads;
 - repacking and integrity information.
 
 Generated aliases are used because the examined soundbank structures do not necessarily contain human-readable sample names. Such aliases are descriptive editor metadata and should not be treated as original names recovered from the archive.
@@ -253,12 +305,13 @@ Their absence does not prevent the principal operations of opening, auditioning,
 
 ## Known Limitations
 
-- The format contains partially understood and potentially title-specific fields.
+- Some fields in both the gcax and Dreamcast families remain partially understood or title-specific.
 - Human-readable sample names may not be present in the source archive.
-- Program and root-key relationships are inferred from recognised MPBP structures.
+- Some gcax program/root-key relationships are inferred from recognised MPBP structures.
+- Dreamcast playback-rate reconstruction relies on base-note metadata and the observed Sega AICA convention.
 - External players and operating-system audio facilities may behave differently across platforms.
 - Successful structural validation does not guarantee acceptance by every game-specific loader.
-- Audio quality after DSP-ADPCM encoding depends on the source material, coefficient table, loop placement, and target playback behaviour.
+- Audio quality after lossy ADPCM encoding depends on the source material, codec state, loop placement, and target runtime.
 
 ## Research and Verification Considerations
 
@@ -283,48 +336,98 @@ The vertical scrollbar of the right-hand operations panel is displayed only when
 
 The `Program filter` control restricts the sample list according to program usage. Its default value, `All programs`, disables program-specific filtering.
 
-
 ## Modular Source Layout
 
-The original single-file implementation has been split into focused modules:
+The original ~4,400-line single-file implementation has been split into focused modules.
 
-- `mlt_soundbank_explorer/core.py` — binary helpers, playback-rate logic and shared data records;
+### Shared / audio
+
+- `mlt_soundbank_explorer/core.py` — shared records, binary helpers, rate logic;
+- `mlt_soundbank_explorer/audio.py` — WAV I/O, resampling, loop-preview processing;
+- `mlt_soundbank_explorer/render_audio.py` — clean-render and quality-processing helpers.
+
+### GameCube gcax
+
 - `mlt_soundbank_explorer/dsp.py` — Nintendo/GameCube DSP-ADPCM codec;
-- `mlt_soundbank_explorer/audio.py` — WAV I/O, resampling and loop-preview processing;
-- `mlt_soundbank_explorer/bank.py` — gcax MLT/MPB parsing, validation, replacement and repacking;
-- `mlt_soundbank_explorer/gui.py` — base Tkinter interface;
-- `mlt_soundbank_explorer/clean_audio.py` — optional rendered-audio cleanup/export layer;
-- `mlt_soundbank_explorer/cli.py` — command-line entry point;
-- `soundbank_formats.py` — format-family probing for gcax, Dreamcast SMLT/SMPB and Sonic Shuffle MDT;
-- `multi_format_adapter.py` — standalone gcaxMPB adapter;
-- `Multi_Format_Soundbank_Explorer.py` — multi-format GUI launcher.
+- `mlt_soundbank_explorer/gcax_chunks.py` — chunk traversal and padding handling;
+- `mlt_soundbank_explorer/gcax_parse.py` — MLT/MPB parsing;
+- `mlt_soundbank_explorer/gcax_metadata.py` — sample/program metadata and playback helpers;
+- `mlt_soundbank_explorer/gcax_edit.py` — replacement and repacking;
+- `mlt_soundbank_explorer/gcax_validation.py` — structural validation and batch operations;
+- `mlt_soundbank_explorer/gcax_render.py` — rendered export layer;
+- `mlt_soundbank_explorer/bank.py` — public gcax bank composition.
 
-`MLT_Soundbank_Explorer.py` remains as a small compatibility launcher so existing scripts and launch commands continue to work.
+### Dreamcast / Sonic Shuffle
 
+- `mlt_soundbank_explorer/dreamcast_codec.py` — AICA ADPCM, PCM8, and PCM16 codecs;
+- `mlt_soundbank_explorer/dreamcast_images.py` — SMPB/SMDB/SOSB binary images and rebuilders;
+- `mlt_soundbank_explorer/dreamcast_bank.py` — editable standalone MPB, SMLT, and MDT bank API.
 
-## Dreamcast and Sonic Shuffle Support
+### Dispatch / UI
 
-The explorer also supports Sega Dreamcast sound-driver banks alongside the
-GameCube gcax family.
+- `mlt_soundbank_explorer/formats.py` — format-family probing;
+- `mlt_soundbank_explorer/adapters.py` — editable-backend dispatch and standalone gcaxMPB adapter;
+- `mlt_soundbank_explorer/gui_base.py`, `gui_actions.py`, `gui_inspection.py`, `gui_project.py`, `gui_render.py` — modular GUI layers;
+- `mlt_soundbank_explorer/multi_gui.py` — multi-format GUI;
+- `mlt_soundbank_explorer/cli.py` — command-line interface.
 
-Editable Dreamcast paths include:
+The historical `MLT_Soundbank_Explorer.py`, `Multi_Format_Soundbank_Explorer.py`, `soundbank_formats.py`, and `multi_format_adapter.py` entry points remain as compatibility wrappers.
 
-- standalone `SMPB` / `SMDB` program banks;
-- `SMLT` multi-unit archives containing SMPB/SMDB data;
-- Sonic Shuffle `MDT` containers containing SMPB/SMDB and SOSB audio blocks.
+## Major Fixes Included in the Multi-Format Rewrite
 
-The Dreamcast backend keeps AICA audio separate from Nintendo DSP-ADPCM. It
-supports AICA 4-bit ADPCM, signed PCM8 and little-endian PCM16 tone data,
-including WAV export/preview, loop previews, WAV replacement, container
-rebuilding, validation and reopen checks.
+The rewrite also fixes a number of issues discovered while running real game assets through the editor:
 
-Dreamcast playback rates are derived from the bank's base-note metadata. The
-observed Sega convention maps base note 60 to 44100 Hz and successive semitone
-steps accordingly.
+- restored the missing `ChildChunkInfo` dataclass construction after the monolith split;
+- added correct handling for real-world `0x55` and `0x00` inter-chunk/tail padding;
+- made no-edit gcax saves byte-identical instead of unnecessarily reconstructing unchanged banks;
+- fixed standalone gcaxMPB identity validation against the real source bytes rather than the temporary synthetic MLT wrapper;
+- added standalone gcaxMPB editing without forcing output back into an MLT container;
+- preserved the original file extension when saving MLT/MPB/MDT sources;
+- fixed raw GameCube PCM16 sample-length derivation where DSP-style count fields are zero;
+- fixed raw PCM16 loop interpretation to use direct sample indices;
+- preserved raw PCM16 encoding during replacement instead of converting it to DSP-ADPCM;
+- added separate validation for raw PCM replacement payloads;
+- corrected staged raw-PCM replacement preview/decode behaviour;
+- moved cubic replacement resampling into the shared audio layer to remove the old cross-module dependency;
+- removed the old clean-audio runtime monkey-patching and replaced it with normal mixin composition;
+- added Dreamcast SMPB/SMDB Program → Layer → Split parsing;
+- added Dreamcast SOSB parsing for Sonic Shuffle MDT data;
+- added AICA ADPCM decode/encode;
+- added Dreamcast signed PCM8 and PCM16LE decode/encode;
+- added Dreamcast base-note playback-rate reconstruction;
+- added SMLT unit rebuilding with updated file offsets and sizes;
+- added MDT offset-table rebuilding when embedded blocks change size;
+- added Dreamcast checksum/file-size regeneration;
+- added CLI dispatch across all editable format families;
+- separated gcax-only reverse-engineering diagnostics from Dreamcast/AICA views;
+- added Python 3.10/3.12 CI with compile and smoke tests.
 
-### Corpus verification
+## Corpus Acceptance Results
 
-The multi-format implementation is regression-tested against the supplied
-GameCube/Dreamcast/Sonic Shuffle corpus. No-edit repacking is required to remain
-byte-identical where supported, and edited banks are reopened and decoded after
-write-back before changes are considered ready for the main branch.
+The version promoted to `main` was tested against the supplied mixed GameCube/Dreamcast/Sonic Shuffle corpus before merge.
+
+Final acceptance results:
+
+- **176 / 176 files recognised**;
+- **176 / 176 files opened through an editable backend**;
+- **176 / 176 no-edit repacks byte-identical**;
+- **7,515 total sample/tone slots enumerated**;
+- **7,511 real sample/tone payloads decoded successfully**;
+- **4 known E-102 null/placeholder slots handled as empty records**;
+- GameCube DSP-ADPCM decode/export/replacement/repack/reopen: **passed**;
+- GameCube raw PCM16 decode/export/replacement/repack/reopen: **passed**;
+- standalone GameCube gcaxMPB: **passed**;
+- Dreamcast AICA ADPCM: **passed**;
+- Dreamcast PCM8: **passed**;
+- Dreamcast PCM16LE: **passed**;
+- standalone Dreamcast SMPB/SMDB: **passed**;
+- Dreamcast SMLT replacement/rebuild/reopen: **passed**;
+- Sonic Shuffle MDT SMPB/SMDB replacement/rebuild/reopen: **passed**;
+- Sonic Shuffle MDT SOSB replacement/rebuild/reopen: **passed**;
+- representative WAV generation and loop-preview generation from every bank family: **passed**;
+- actual WAV replacement → validation → save → reopen → decode → re-validation on **176 / 176 banks**: **passed**;
+- CLI inspection/validation/repack/export paths: **passed**;
+- Python 3.10 CI: **passed**;
+- Python 3.12 CI: **passed**.
+
+The corpus tests validate parser, codec, editor, repacker, reopen, and WAV-generation behaviour. Game-specific runtime testing is still recommended before distributing modified assets.
