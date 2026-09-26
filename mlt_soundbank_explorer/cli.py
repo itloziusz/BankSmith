@@ -8,6 +8,7 @@ from .core import DEFAULT_TRIGGER_NOTE, note_name
 from .adapters import open_editable_bank
 from .formats import extract_mdt_blocks, inspect_soundbank
 from .render_audio import DEFAULT_CLEAN_RENDER_RATE
+from .branding import APP_TITLE
 
 
 def print_cli_usage() -> None:
