@@ -20,19 +20,22 @@ from .core import *
 from .dsp import *
 from .audio import *
 from .bank import *
+from .adapters import open_editable_bank
 
 class GUIProjectMixin:
     def save_project_json(self) -> None:
         if not self.bank:
             return
-        default = self.bank.path.with_name(self.bank.path.stem + "_mlt_project.json").name
+        default = self.bank.path.with_name(self.bank.path.stem + "_banksmith_project.json").name
         path = filedialog.asksaveasfilename(title="Save editor project JSON", initialfile=default, defaultextension=".json", filetypes=[("JSON", "*.json")])
         if not path:
             return
         try:
             data = {
-                "tool": "MLT Soundbank Explorer project",
-                "mlt_path": str(self.bank.path),
+                "tool": "BankSmith project",
+                "format_version": 2,
+                "soundbank_path": str(self.bank.path),
+                "mlt_path": str(self.bank.path),  # legacy compatibility
                 "settings": {
                     "pitch_correct": bool(self.pitch_correct_var.get()),
                     "trigger_note": int(self.trigger_note_var.get()),
@@ -71,14 +74,20 @@ class GUIProjectMixin:
             return
         try:
             data = json.loads(Path(path).read_text(encoding="utf-8"))
-            mlt_path = Path(data.get("mlt_path", ""))
+            soundbank_path = Path(data.get("soundbank_path") or data.get("mlt_path", ""))
             if self.bank is None:
-                if not mlt_path.exists():
-                    chosen = filedialog.askopenfilename(title="Project MLT missing; choose MLT", filetypes=[("MLT", "*.mlt"), ("All files", "*.*")])
+                if not soundbank_path.exists():
+                    chosen = filedialog.askopenfilename(
+                        title="Project soundbank missing; choose source file",
+                        filetypes=[
+                            ("Supported soundbanks", "*.mlt *.mpb *.mdt"),
+                            ("All files", "*.*"),
+                        ],
+                    )
                     if not chosen:
                         return
-                    mlt_path = Path(chosen)
-                self.bank = MLTBank(mlt_path)
+                    soundbank_path = Path(chosen)
+                self.bank = open_editable_bank(soundbank_path)
             settings = data.get("settings", {})
             if "pitch_correct" in settings:
                 self.pitch_correct_var.set(bool(settings["pitch_correct"]))
