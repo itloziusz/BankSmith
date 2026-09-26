@@ -282,3 +282,49 @@ Before a modified archive is distributed or integrated into a project, preserve 
 The vertical scrollbar of the right-hand operations panel is displayed only when the panel content exceeds the currently available window height. It is removed automatically when the window becomes sufficiently tall and restored immediately when the window is reduced. Mouse-wheel navigation is supported while the pointer is positioned over the panel.
 
 The `Program filter` control restricts the sample list according to program usage. Its default value, `All programs`, disables program-specific filtering.
+
+
+## Modular Source Layout
+
+The original single-file implementation has been split into focused modules:
+
+- `mlt_soundbank_explorer/core.py` — binary helpers, playback-rate logic and shared data records;
+- `mlt_soundbank_explorer/dsp.py` — Nintendo/GameCube DSP-ADPCM codec;
+- `mlt_soundbank_explorer/audio.py` — WAV I/O, resampling and loop-preview processing;
+- `mlt_soundbank_explorer/bank.py` — gcax MLT/MPB parsing, validation, replacement and repacking;
+- `mlt_soundbank_explorer/gui.py` — base Tkinter interface;
+- `mlt_soundbank_explorer/clean_audio.py` — optional rendered-audio cleanup/export layer;
+- `mlt_soundbank_explorer/cli.py` — command-line entry point;
+- `soundbank_formats.py` — format-family probing for gcax, Dreamcast SMLT/SMPB and Sonic Shuffle MDT;
+- `multi_format_adapter.py` — standalone gcaxMPB adapter;
+- `Multi_Format_Soundbank_Explorer.py` — multi-format GUI launcher.
+
+`MLT_Soundbank_Explorer.py` remains as a small compatibility launcher so existing scripts and launch commands continue to work.
+
+
+## Dreamcast and Sonic Shuffle Support
+
+The explorer also supports Sega Dreamcast sound-driver banks alongside the
+GameCube gcax family.
+
+Editable Dreamcast paths include:
+
+- standalone `SMPB` / `SMDB` program banks;
+- `SMLT` multi-unit archives containing SMPB/SMDB data;
+- Sonic Shuffle `MDT` containers containing SMPB/SMDB and SOSB audio blocks.
+
+The Dreamcast backend keeps AICA audio separate from Nintendo DSP-ADPCM. It
+supports AICA 4-bit ADPCM, signed PCM8 and little-endian PCM16 tone data,
+including WAV export/preview, loop previews, WAV replacement, container
+rebuilding, validation and reopen checks.
+
+Dreamcast playback rates are derived from the bank's base-note metadata. The
+observed Sega convention maps base note 60 to 44100 Hz and successive semitone
+steps accordingly.
+
+### Corpus verification
+
+The multi-format implementation is regression-tested against the supplied
+GameCube/Dreamcast/Sonic Shuffle corpus. No-edit repacking is required to remain
+byte-identical where supported, and edited banks are reopened and decoded after
+write-back before changes are considered ready for the main branch.
