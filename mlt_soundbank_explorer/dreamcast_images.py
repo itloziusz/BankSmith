@@ -38,6 +38,19 @@ class DreamcastReplacement:
     sample_count: int
     sample_rate: int
     format: str
+    source_wav_rate: int = 0
+    loop_start_sample: int = 0
+    loop_end_sample_exclusive: int = 0
+    encode_peak_error: int = 0
+    encode_rms_error: float = 0.0
+
+    @property
+    def content_sample_rate(self) -> int:
+        return self.sample_rate
+
+    @property
+    def encoded_payload(self) -> bytes:
+        return self.payload
 
 
 @dataclass
