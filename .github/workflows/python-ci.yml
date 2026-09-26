@@ -1,8 +1,8 @@
-name: Python CI
+name: BankSmith CI
 
 on:
   push:
-    branches: ["main", "format-family-support"]
+    branches: ["main", "format-family-support", "banksmith-rename"]
   pull_request:
 
 jobs:
@@ -22,11 +22,15 @@ jobs:
         run: python -m pip install pytest
       - name: Test
         run: python -m pytest -q
+      - name: BankSmith CLI help
+        run: |
+          python BankSmith.py --help
+          python -m banksmith --help
       - name: Upload source snapshot
         if: matrix.python-version == '3.12'
         uses: actions/upload-artifact@v4
         with:
-          name: format-family-support-source
+          name: banksmith-source
           path: |
             .
             !.git
