@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-from mlt_soundbank_explorer.bank import MLTBank
+from mlt_soundbank_explorer import MLTBank
 from soundbank_formats import SoundbankProbe, inspect_soundbank
 
 
