@@ -67,6 +67,37 @@ class GCAXEditMixin:
             loop_start_sample = 0
             loop_end_sample_exclusive = new_count
 
+        if s.type_byte == 0x0A:
+            # Preserve linear/raw banks as big-endian PCM16 instead of silently
+            # converting the entry to DSP-ADPCM.
+            values = pcm16_bytes_to_list(pcm)
+            payload = b"".join(struct.pack(">h", clamp16(v)) for v in values)
+            entry = bytearray(self.data[s.entry_abs:s.entry_abs + 0x50])
+            entry[0x00:0x08] = b"\x00" * 8
+            entry[0x08:0x0C] = p32be(bank_sr)
+            entry[0x0C:0x0E] = p16be(1 if s.loop_flag else 0)
+            entry[0x0E:0x10] = p16be(s.fmt)
+            entry[0x10:0x14] = p32be(loop_start_sample if s.loop_flag else 0)
+            entry[0x14:0x18] = p32be(max(0, loop_end_sample_exclusive - 1))
+            entry[0x18:0x1C] = p32be(0)
+            entry[0x4A] = 0x0A
+
+            s.replacement = Replacement(
+                wav_path=Path(wav_path),
+                pcm_le_i16=pcm,
+                sample_rate=bank_sr,
+                encoded_payload=payload,
+                new_entry=bytes(entry),
+                loop_start_sample=loop_start_sample,
+                source_wav_rate=source_sr,
+                content_sample_rate=content_sr,
+                nibble_count=0,
+                loop_end_sample_exclusive=loop_end_sample_exclusive,
+                encode_peak_error=0,
+                encode_rms_error=0.0,
+            )
+            return
+
         payload, initial_ps, loop_ps, loop_hist1, loop_hist2, encoded_count = encode_dsp_adpcm(
             pcm, s.coefficients, loop_start_sample=loop_start_sample
         )
