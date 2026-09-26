@@ -3,6 +3,9 @@ from __future__ import annotations
 import csv
 import math
 import os
+import queue
+import re
+import struct
 import tempfile
 from pathlib import Path
 from typing import Dict, List
