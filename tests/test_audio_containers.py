@@ -246,3 +246,24 @@ def test_csb_parse_and_export(tmp_path: Path) -> None:
     files = export_audio(path, tmp_path / "wav")
     assert files[0].name == "000_00000-beep_aif.wav"
     assert _wav_info(files[0]) == (1, 22050, 28)
+
+
+def test_csb_aax_wrapper_exports_intro_and_loop(tmp_path: Path) -> None:
+    aax = _utf_table(
+        "AAX",
+        [("data", "b"), ("lpflg", "B")],
+        [[_adx_stream(2), 0], [_adx_stream(3), 1]],
+    )
+    sdl = _utf_table(
+        "TBLSDL",
+        [("name", "s"), ("data", "b"), ("fmt", "B"), ("nch", "B"), ("sfreq", "I"), ("nsmpl", "I")],
+        [["Synth/Test/bgm", aax, 0, 1, 22050, 96]],
+    )
+    path = tmp_path / "bgm.csb"
+    path.write_bytes(_utf_table("TBLCSB", [("name", "s"), ("ttype", "B"), ("utf", "b")],
+                                [["SOUND_ELEMENT", 4, sdl]]))
+    sound = parse_csb(path.read_bytes()).sounds[0]
+    assert sound.codec == "AAX" and len(sound.parts) == 2 and sound.decodable
+    files = export_audio(path, tmp_path / "wav")
+    assert [f.name for f in files] == ["000_bgm_intro.wav", "000_bgm_loop.wav"]
+    assert [_wav_info(f)[2] for f in files] == [64, 96]
