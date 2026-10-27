@@ -8,6 +8,7 @@ from .render_audio import *
 from .bank import MLTBank
 from .gui import MLTExplorerApp
 from .formats import SoundbankProbe, ProbeEntry, inspect_soundbank, extract_mdt_blocks, format_summary_text
+from .audio_containers import export_audio, parse_csb, parse_dtpk
 from .adapters import StandaloneGCAXMPBBank, open_editable_bank, wrap_gcax_mpb_as_mlt
 from .dreamcast_bank import (
     DreamcastStandaloneMPBBank,
@@ -36,6 +37,9 @@ __all__ = [
     "wrap_gcax_mpb_as_mlt",
     "inspect_soundbank",
     "extract_mdt_blocks",
+    "export_audio",
+    "parse_csb",
+    "parse_dtpk",
     "format_summary_text",
     "main",
     "print_cli_usage",

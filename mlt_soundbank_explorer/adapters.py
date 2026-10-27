@@ -7,6 +7,7 @@ from typing import Optional
 
 from .bank import MLTBank
 from .dreamcast_bank import DreamcastStandaloneMPBBank, DreamcastSMLTBank, DreamcastMDTBank
+from .audio_containers import mdt_offset_table
 from .formats import SoundbankProbe, inspect_soundbank
 
 
@@ -143,9 +144,14 @@ def open_editable_bank(path: Path | str):
     if head[:4] == b"SMLT":
         return DreamcastSMLTBank(path)
     if path.suffix.lower() == ".mdt":
-        return DreamcastMDTBank(path)
+        table = mdt_offset_table(path.read_bytes())
+        if table is None or table[0] != "big":
+            return DreamcastMDTBank(path)
     probe = inspect_soundbank(path)
-    raise ValueError(f"{probe.family} is recognised but has no editable backend.")
+    raise ValueError(
+        f"{probe.family} is recognised but has no editable backend. "
+        "Use the audio export to decode it to WAV."
+    )
 
 
 def inspect_any(path: Path | str) -> SoundbankProbe:

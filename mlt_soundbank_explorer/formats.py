@@ -6,6 +6,17 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, List
 
+from .audio_containers import (
+    is_adx,
+    is_csb,
+    is_dtpk,
+    mdt_block_payload,
+    mdt_offset_table,
+    parse_adx_header,
+    parse_csb,
+    parse_dtpk,
+)
+
 
 def _u32le(data: bytes, off: int) -> int:
     if off < 0 or off + 4 > len(data):
@@ -215,7 +226,33 @@ def _probe_smpb(path: Path, data: bytes) -> SoundbankProbe:
     return SoundbankProbe(str(path), "Dreamcast SMPB", "little", len(data), True, entries, notes)
 
 
+def _probe_mdt_be(path: Path, data: bytes, offsets: List[int]) -> SoundbankProbe:
+    entries: List[ProbeEntry] = []
+    notes = [
+        "Big-endian MDT container: offset table of size-prefixed blocks.",
+        "ADX blocks can be extracted as .adx or decoded to WAV; they are not repackable.",
+    ]
+    for i, off in enumerate(offsets):
+        payload = mdt_block_payload(data, offsets, i, "big")
+        next_off = offsets[i + 1] if i + 1 < len(offsets) else len(data)
+        if is_adx(payload):
+            h = parse_adx_header(payload)
+            kind = "ADX"
+            note = (
+                f"{h.channels} ch, {h.rate} Hz, {h.total_samples} samples, "
+                f"encoding={h.encoding}, version={h.version}"
+            )
+        else:
+            kind = _tag(payload, 0, 4) if payload else ""
+            note = "unrecognised block payload"
+        entries.append(ProbeEntry(i, kind, off, next_off - off, notes=note))
+    return SoundbankProbe(str(path), "CRI ADX MDT", "big", len(data), False, entries, notes)
+
+
 def _probe_mdt(path: Path, data: bytes) -> SoundbankProbe:
+    table = mdt_offset_table(data)
+    if table is not None and table[0] == "big":
+        return _probe_mdt_be(path, data, table[1])
     if len(data) < 8:
         raise ValueError("MDT is too short")
     first = _u32le(data, 0)
@@ -243,9 +280,66 @@ def _probe_mdt(path: Path, data: bytes) -> SoundbankProbe:
     return SoundbankProbe(str(path), "Sonic Shuffle MDT", "little", len(data), True, entries, notes)
 
 
+def _probe_dtpk(path: Path, data: bytes) -> SoundbankProbe:
+    pack = parse_dtpk(data)
+    ps2 = pack.platform == "ps2"
+    notes = list(pack.notes) + [
+        "DTPK data pack: TBLD program/tone tables followed by "
+        + ("a PS2 VAG ADPCM sample block." if ps2 else "a GameCube/Wii PCMD sample block."),
+        "Samples can be decoded and exported to WAV; the pack is not repackable.",
+        "TBLD section pointers: " + ", ".join(f"0x{p:X}" for p in pack.pointers),
+    ]
+    entries = []
+    for smp in pack.samples:
+        note = f"{smp.rate} Hz"
+        if smp.codec == "dsp-adpcm" and smp.loop_start != 2:
+            note += f"; loop start nibble 0x{smp.loop_start:X}"
+        if smp.codec == "unknown":
+            note += f"; unsupported format word 0x{smp.format_word:X}"
+        entries.append(
+            ProbeEntry(
+                smp.index, smp.codec, smp.data_offset, smp.data_size,
+                aux_offset=smp.table_offset, aux_size=16 if ps2 else 0x44, notes=note,
+            )
+        )
+    family = "PS2 DTPK" if ps2 else "GameCube/Wii gcaxDTPK"
+    return SoundbankProbe(
+        str(path), family, "little" if ps2 else "big", len(data), False, entries, notes
+    )
+
+
+def _probe_csb(path: Path, data: bytes) -> SoundbankProbe:
+    csb = parse_csb(data)
+    notes = [
+        "CRI Sound Bank (@UTF tables): "
+        + ", ".join(f"{name}@0x{off:X}" for name, off in csb.tables.items()),
+        f"{csb.cue_count} cues, {csb.synth_count} synths, {len(csb.sounds)} sound elements.",
+        "Sound elements can be extracted to WAV; the archive is not repackable.",
+    ] + csb.notes
+    entries = []
+    for snd in csb.sounds:
+        blob = snd.data
+        entries.append(
+            ProbeEntry(
+                snd.index,
+                snd.codec,
+                blob.offset if blob else 0,
+                blob.size if blob else 0,
+                aux_offset=snd.headers.offset if snd.headers else None,
+                aux_size=snd.headers.size if snd.headers else None,
+                notes=f"{snd.name} | {snd.channels} ch, {snd.rate} Hz, {snd.sample_count} samples",
+            )
+        )
+    return SoundbankProbe(str(path), "CRI CSB", "big", len(data), False, entries, notes)
+
+
 def inspect_soundbank(path: Path | str) -> SoundbankProbe:
     path = Path(path)
     data = path.read_bytes()
+    if is_dtpk(data):
+        return _probe_dtpk(path, data)
+    if is_csb(data):
+        return _probe_csb(path, data)
     if data.startswith(b"gcaxMLT "):
         return _probe_gcax_mlt(path, data)
     if data.startswith(b"gcaxMPB "):
@@ -295,11 +389,21 @@ def extract_mdt_blocks(path: Path | str, out_dir: Path | str) -> List[Path]:
     path = Path(path)
     out_dir = Path(out_dir)
     probe = inspect_soundbank(path)
-    if probe.family != "Sonic Shuffle MDT":
+    if probe.family not in ("Sonic Shuffle MDT", "CRI ADX MDT"):
         raise ValueError("extract_mdt_blocks requires an MDT file")
     data = path.read_bytes()
     out_dir.mkdir(parents=True, exist_ok=True)
     out: List[Path] = []
+    if probe.family == "CRI ADX MDT":
+        table = mdt_offset_table(data)
+        assert table is not None
+        for entry in probe.entries:
+            payload = mdt_block_payload(data, table[1], entry.index, table[0])
+            ext = ".adx" if entry.kind == "ADX" else ".bin"
+            dst = out_dir / f"{entry.index:03d}_{entry.kind or 'BLOCK'}{ext}"
+            dst.write_bytes(payload)
+            out.append(dst)
+        return out
     ext_by_kind = {"SMSB": ".msb", "SMPB": ".mpb", "SMDB": ".mdb"}
     for entry in probe.entries:
         raw = data[entry.offset:entry.offset + entry.size]
