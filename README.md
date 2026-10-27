@@ -17,7 +17,7 @@ Current editable families include:
 Inspect-and-export families (decoded to WAV, not repackable):
 
 - GameCube/Wii `gcaxDTPK` and PS2 `ps2_DTPK` data packs (`.dat`);
-- CRI `CSB` sound banks (`@UTF` tables whose sound elements hold Wii DSP-ADPCM);
+- CRI `CSB` sound banks (`@UTF` tables whose sound elements hold Wii DSP-ADPCM or ADX, exported per intro/loop part; streamed elements stored in an external `.cpk` are listed but not exported);
 - big-endian `MDT` containers whose blocks are CRI ADX streams.
 
 The application is implemented in Python with a Tkinter interface. Its design prioritises structural preservation, reproducible output, explicit validation, byte-identical no-edit round trips where possible, and non-destructive file handling.

@@ -398,28 +398,57 @@ def parse_utf_table(data: bytes, base: int = 0) -> Tuple[str, List[Dict[str, Any
 
 
 @dataclass
+class CsbPart:
+    """One row of a sound element's wrapper table (``lpflg`` 0 = intro, 1 = loop)."""
+    loop_flag: int
+    data: Optional[UtfBlob]
+    header: Optional[UtfBlob] = None
+
+
+@dataclass
 class CsbSound:
     index: int
     name: str
-    codec: str  # nested table name, e.g. ADPCM_WII
+    codec: str  # wrapper table name: ADPCM_WII (DSP), AAX (ADX) or SWLPCM
     channels: int
     rate: int
     sample_count: int
     table_offset: int
-    data: Optional[UtfBlob]
-    headers: Optional[UtfBlob]
-    loop_flag: int = 0
+    parts: List[CsbPart] = field(default_factory=list)
+    streaming: bool = False
+
+    @property
+    def data(self) -> Optional[UtfBlob]:
+        return self.parts[0].data if self.parts else None
+
+    @property
+    def headers(self) -> Optional[UtfBlob]:
+        return self.parts[0].header if self.parts else None
 
     @property
     def decodable(self) -> bool:
-        return self.codec == "ADPCM_WII" and self.data is not None and self.headers is not None
+        if not self.parts:
+            return False
+        if self.codec == "ADPCM_WII":
+            return all(p.data is not None and p.header is not None for p in self.parts)
+        if self.codec == "AAX":
+            return all(p.data is not None for p in self.parts)
+        return False
 
-    def decode(self, buf: bytes) -> DecodedAudio:
+    def part_label(self, part: CsbPart) -> str:
+        if len(self.parts) < 2:
+            return ""
+        return "_loop" if part.loop_flag else "_intro"
+
+    def decode(self, buf: bytes, part: Optional[CsbPart] = None) -> DecodedAudio:
         if not self.decodable:
             raise ValueError(f"CSB codec {self.codec!r} has no decoder")
+        part = part or self.parts[0]
+        raw = buf[part.data.offset:part.data.offset + part.data.size]
+        if self.codec == "AAX":
+            return decode_adx(raw)
         nch = max(1, self.channels)
-        header = buf[self.headers.offset:self.headers.offset + self.headers.size]
-        raw = buf[self.data.offset:self.data.offset + self.data.size]
+        header = buf[part.header.offset:part.header.offset + part.header.size]
         if len(header) < 0x60 * nch:
             raise ValueError("CSB DSP header block is too short")
         channels: List[bytes] = []
@@ -482,18 +511,19 @@ def parse_csb(data: bytes) -> CsbArchive:
     sdl_base = tables.get("SOUND_ELEMENT")
     for i, row in enumerate(parsed.get("SOUND_ELEMENT", [])):
         blob = row.get("data")
-        codec, data_blob, header_blob, loop = "unknown", None, None, 0
+        codec, parts = "unknown", []
         if isinstance(blob, UtfBlob) and data[blob.offset:blob.offset + 4] == b"@UTF":
             codec, sub_rows = parse_utf_table(data, blob.offset)
-            if sub_rows:
-                sub = sub_rows[0]
-                if isinstance(sub.get("data"), UtfBlob):
-                    data_blob = sub["data"]
-                if isinstance(sub.get("header"), UtfBlob):
-                    header_blob = sub["header"]
-                loop = int(sub.get("lpflg") or 0)
+            for sub in sub_rows:
+                part_data = sub.get("data")
+                part_header = sub.get("header")
+                parts.append(CsbPart(
+                    int(sub.get("lpflg") or 0),
+                    part_data if isinstance(part_data, UtfBlob) else None,
+                    part_header if isinstance(part_header, UtfBlob) else None,
+                ))
         elif isinstance(blob, UtfBlob):
-            codec, data_blob = "raw", blob
+            codec, parts = "raw", [CsbPart(0, blob)]
         sounds.append(CsbSound(
             index=i,
             name=str(row.get("name") or f"sound_{i}"),
@@ -502,13 +532,15 @@ def parse_csb(data: bytes) -> CsbArchive:
             rate=int(row.get("sfreq") or 0),
             sample_count=int(row.get("nsmpl") or 0),
             table_offset=blob.offset if isinstance(blob, UtfBlob) else (sdl_base or 0),
-            data=data_blob,
-            headers=header_blob,
-            loop_flag=loop,
+            parts=parts,
+            streaming=bool(row.get("stmflg")),
         ))
-    unsupported = sorted({s.codec for s in sounds if not s.decodable})
+    unsupported = sorted({s.codec for s in sounds if not s.decodable and not s.streaming})
     if unsupported:
         notes.append("No WAV decoder for sound-element codec(s): " + ", ".join(unsupported))
+    streaming = sum(1 for s in sounds if s.streaming)
+    if streaming:
+        notes.append(f"{streaming} streaming sound element(s) live in an external .cpk and are not exported.")
     return CsbArchive(
         tables, len(parsed.get("CUE", [])), len(parsed.get("SYNTH", [])), sounds, notes
     )
@@ -574,9 +606,11 @@ def export_audio(path: Path | str, out_dir: Path | str) -> List[Path]:
         for s in parse_csb(data).sounds:
             if not s.decodable:
                 continue
-            dst = out_dir / f"{s.index:03d}_{_safe_name(s.name.rsplit('/', 1)[-1])}.wav"
-            write_pcm_wav(dst, s.decode(data))
-            written.append(dst)
+            base = f"{s.index:03d}_{_safe_name(s.name.rsplit('/', 1)[-1])}"
+            for part in s.parts:
+                dst = out_dir / f"{base}{s.part_label(part)}.wav"
+                write_pcm_wav(dst, s.decode(data, part))
+                written.append(dst)
         return written
     table = mdt_offset_table(data)
     if table is not None:

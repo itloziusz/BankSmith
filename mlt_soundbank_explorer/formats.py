@@ -319,6 +319,9 @@ def _probe_csb(path: Path, data: bytes) -> SoundbankProbe:
     entries = []
     for snd in csb.sounds:
         blob = snd.data
+        extra = f"; {len(snd.parts)} parts (intro/loop)" if len(snd.parts) > 1 else ""
+        if snd.streaming:
+            extra += "; streamed from external .cpk"
         entries.append(
             ProbeEntry(
                 snd.index,
@@ -327,7 +330,7 @@ def _probe_csb(path: Path, data: bytes) -> SoundbankProbe:
                 blob.size if blob else 0,
                 aux_offset=snd.headers.offset if snd.headers else None,
                 aux_size=snd.headers.size if snd.headers else None,
-                notes=f"{snd.name} | {snd.channels} ch, {snd.rate} Hz, {snd.sample_count} samples",
+                notes=f"{snd.name} | {snd.channels} ch, {snd.rate} Hz, {snd.sample_count} samples{extra}",
             )
         )
     return SoundbankProbe(str(path), "CRI CSB", "big", len(data), False, entries, notes)
