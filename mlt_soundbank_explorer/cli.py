@@ -6,6 +6,7 @@ from typing import List
 
 from .core import DEFAULT_TRIGGER_NOTE, note_name
 from .adapters import open_editable_bank
+from .audio_containers import export_audio
 from .formats import extract_mdt_blocks, inspect_soundbank
 from .render_audio import DEFAULT_CLEAN_RENDER_RATE
 from .branding import APP_TITLE
@@ -18,6 +19,7 @@ Usage:
   python BankSmith.py [soundbank]                         Open the multi-format GUI
   python BankSmith.py --inspect file [report.json]
   python BankSmith.py --extract-mdt file.mdt [out_dir]
+  python BankSmith.py --export-audio file [out_dir]       Decode DTPK/CSB/ADX-MDT audio to WAV
   python BankSmith.py --validate bank [report.csv] [trigger_note]
   python BankSmith.py --repack-copy bank [out_file]
   python BankSmith.py --export-all bank [out_dir] [trigger_note]
@@ -35,6 +37,11 @@ Editable bank formats:
   - Dreamcast SMLT archives
   - standalone Dreamcast SMPB/SMDB banks
   - Sonic Shuffle MDT containers with SMPB/SMDB/SOSB audio blocks
+
+Inspect / WAV-export formats (not repackable):
+  - gcaxDTPK and ps2_DTPK data packs (.dat)
+  - CRI CSB sound banks (@UTF tables with Wii ADPCM sound elements)
+  - big-endian MDT containers holding ADX streams
 
 Replacement WAV import accepts PCM 8/16/24/32-bit and IEEE-float 32/64-bit,
 including WAVE_FORMAT_EXTENSIBLE. Source files are never overwritten in place.
@@ -69,6 +76,13 @@ def main(argv: List[str]) -> int:
         out_dir = Path(argv[3]) if len(argv) >= 4 else input_path.with_name(input_path.stem + "_blocks")
         files = extract_mdt_blocks(input_path, out_dir)
         print(f"Extracted {len(files)} MDT blocks to {out_dir}")
+        return 0
+
+    if len(argv) >= 3 and argv[1] == "--export-audio":
+        input_path = Path(argv[2])
+        out_dir = Path(argv[3]) if len(argv) >= 4 else input_path.with_name(input_path.stem + "_wavs")
+        files = export_audio(input_path, out_dir)
+        print(f"Exported {len(files)} WAV files to {out_dir}")
         return 0
 
     if len(argv) >= 3 and argv[1] == "--validate":

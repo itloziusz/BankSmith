@@ -8,6 +8,7 @@ from tkinter import filedialog, messagebox, ttk
 
 from .gui import MLTExplorerApp
 from .adapters import open_editable_bank
+from .audio_containers import export_audio
 from .formats import extract_mdt_blocks, format_summary_text, inspect_soundbank
 from .core import note_name
 
@@ -136,7 +137,7 @@ class BankSmithApp(MLTExplorerApp):
                  f"{probe.file_size:,} bytes",
         ).pack(side=tk.LEFT)
 
-        if probe.family == "Sonic Shuffle MDT":
+        if probe.family in ("Sonic Shuffle MDT", "CRI ADX MDT"):
             def extract() -> None:
                 out = filedialog.askdirectory(
                     parent=win,
@@ -156,6 +157,28 @@ class BankSmithApp(MLTExplorerApp):
 
             ttk.Button(top, text="Extract MDT blocks", command=extract).pack(
                 side=tk.RIGHT
+            )
+
+        if probe.family in ("GameCube/Wii gcaxDTPK", "PS2 DTPK", "CRI CSB", "CRI ADX MDT"):
+            def export_wavs() -> None:
+                out = filedialog.askdirectory(
+                    parent=win,
+                    title="Export decoded audio to folder",
+                )
+                if not out:
+                    return
+                try:
+                    files = export_audio(path, Path(out))
+                    messagebox.showinfo(
+                        "Audio export",
+                        f"Exported {len(files)} WAV files to:\n{out}",
+                        parent=win,
+                    )
+                except Exception as exc:
+                    messagebox.showerror("Audio export failed", str(exc), parent=win)
+
+            ttk.Button(top, text="Export audio (WAV)", command=export_wavs).pack(
+                side=tk.RIGHT, padx=(0, 6)
             )
 
         columns = ("index", "kind", "offset", "size", "bank", "aux", "notes")
@@ -206,10 +229,12 @@ class BankSmithApp(MLTExplorerApp):
         path_str = filedialog.askopenfilename(
             title="Open soundbank / container",
             filetypes=[
-                ("Supported soundbanks", "*.mlt *.mpb *.mdt"),
+                ("Supported soundbanks", "*.mlt *.mpb *.mdt *.dat *.csb"),
                 ("MLT files", "*.mlt"),
                 ("MPB files", "*.mpb"),
                 ("MDT files", "*.mdt"),
+                ("DTPK data packs", "*.dat"),
+                ("CSB sound banks", "*.csb"),
                 ("All files", "*.*"),
             ],
         )

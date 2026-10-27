@@ -14,6 +14,12 @@ Current editable families include:
 - standalone Dreamcast `SMPB` / `SMDB` program banks;
 - Sonic Shuffle `MDT` containers with `SMPB`, `SMDB`, and `SOSB` audio blocks.
 
+Inspect-and-export families (decoded to WAV, not repackable):
+
+- GameCube/Wii `gcaxDTPK` and PS2 `ps2_DTPK` data packs (`.dat`);
+- CRI `CSB` sound banks (`@UTF` tables whose sound elements hold Wii DSP-ADPCM);
+- big-endian `MDT` containers whose blocks are CRI ADX streams.
+
 The application is implemented in Python with a Tkinter interface. Its design prioritises structural preservation, reproducible output, explicit validation, byte-identical no-edit round trips where possible, and non-destructive file handling.
 
 ## Principal Capabilities
@@ -26,6 +32,8 @@ The application provides the following functions:
 - enumerating sample/tone records, loop metadata, rate information, and program/layer/split references;
 - decoding Nintendo/GameCube DSP-ADPCM;
 - decoding Sega AICA 4-bit ADPCM, signed PCM8, and little-endian PCM16;
+- decoding PS2 VAG ADPCM, big-endian PCM16, and CRI ADX (encoding 3) to WAV;
+- inspecting DTPK sample tables and CSB `@UTF` sound-element tables;
 - exporting decoded audio as mono PCM WAV;
 - real-time preview through the operating-system playback path;
 - generating continuous loop previews without an intro-to-loop playback hand-off;
@@ -240,6 +248,16 @@ Extract Sonic Shuffle MDT blocks:
 python BankSmith.py --extract-mdt sound.mdt output_folder
 ```
 
+Decode every playable sound in a DTPK `.dat`, a CSB archive, or a big-endian ADX `MDT` to WAV:
+
+```bash
+python BankSmith.py --export-audio pack.dat output_folder
+python BankSmith.py --export-audio bank.csb output_folder
+python BankSmith.py --export-audio sound.mdt output_folder
+```
+
+`--extract-mdt` also works on big-endian ADX MDTs and writes each block as a `.adx` file.
+
 Validate an editable bank and write a report:
 
 ```bash
@@ -375,6 +393,10 @@ The original ~4,400-line single-file implementation has been split into focused 
 - `mlt_soundbank_explorer/dreamcast_codec.py` — AICA ADPCM, PCM8, and PCM16 codecs;
 - `mlt_soundbank_explorer/dreamcast_images.py` — SMPB/SMDB/SOSB binary images and rebuilders;
 - `mlt_soundbank_explorer/dreamcast_bank.py` — editable standalone MPB, SMLT, and MDT bank API.
+
+### DTPK / CSB / ADX
+
+- `mlt_soundbank_explorer/audio_containers.py` — `gcaxDTPK` / `ps2_DTPK` sample tables, CRI `@UTF` / CSB parsing, big-endian MDT tables, and the DSP-ADPCM, VAG, PCM16 and ADX decoders behind `--export-audio`.
 
 ### Dispatch / UI
 
